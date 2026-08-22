@@ -17,22 +17,22 @@
     <div id="notice" class="notice"></div>
 
     <div class="grid four">
-        <section class="card stat"><span class="label">Booked today</span>
+        <section class="card stat"><span class="stat-icon" data-icon="calendar"></span><span class="label">Booked today</span>
             <div class="n" id="statToday">—</div></section>
-        <section class="card stat warn"><span class="label">Waiting now</span>
+        <section class="card stat warn"><span class="stat-icon" data-icon="hourglass"></span><span class="label">Waiting now</span>
             <div class="n" id="statWaiting">—</div></section>
-        <section class="card stat"><span class="label">Seen today</span>
+        <section class="card stat"><span class="stat-icon" data-icon="check"></span><span class="label">Seen today</span>
             <div class="n" id="statAttended">—</div></section>
-        <section class="card stat alt"><span class="label">Turned up</span>
+        <section class="card stat alt"><span class="stat-icon" data-icon="chart"></span><span class="label">Turned up</span>
             <div class="n" id="statRate">—</div></section>
     </div>
 
     <div class="grid three">
-        <section class="card stat alt"><span class="label">Registered patients</span>
+        <section class="card stat alt"><span class="stat-icon" data-icon="people"></span><span class="label">Registered patients</span>
             <div class="n" id="statPatients">—</div></section>
-        <section class="card stat alt"><span class="label">Staff accounts</span>
+        <section class="card stat alt"><span class="stat-icon" data-icon="people"></span><span class="label">Staff accounts</span>
             <div class="n" id="statStaff">—</div></section>
-        <section class="card stat alt"><span class="label">Departments</span>
+        <section class="card stat alt"><span class="stat-icon" data-icon="building"></span><span class="label">Departments</span>
             <div class="n" id="statDepartments">—</div></section>
     </div>
 </main>
@@ -50,6 +50,11 @@
             { key: 'staff',       href: '/admin/staff.html',       label: 'Staff' },
             { key: 'reports',     href: '/admin/reports.html',     label: 'Reports' }
         ], 'overview');
+
+        // Icons come from the shared set in api.js.
+        document.querySelectorAll('[data-icon]').forEach(el => {
+            el.insertAdjacentHTML('afterbegin', ICON[el.dataset.icon] || '');
+        });
 
         try {
             // Two independent reports, so one round trip of latency instead of two.

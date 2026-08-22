@@ -90,9 +90,25 @@ async function markDemoInstance() {
 
 document.addEventListener('DOMContentLoaded', markDemoInstance);
 
-/* Icons for the mobile action bar. Inline so the bar needs no extra request and works
-   before any font or icon set has loaded. */
+/*
+ * Inline SVG icons.
+ *
+ * Inline rather than an icon font or sprite sheet: they need no extra request, they
+ * render before anything else has loaded, and they inherit currentColor so one
+ * definition works on the navy bar, the white cards and the green rail item alike.
+ */
 const ICON = {
+    board:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',
+    calendar:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>',
+    building:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10"/><path d="M8 7h2M8 11h2M8 15h2M2 21h20"/></svg>',
+    people:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+    chart:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v-4M12 15V7M17 15v-6"/></svg>',
+    hourglass:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12M6 2c0 5 6 5 6 10s-6 5-6 10M18 2c0 5-6 5-6 10s6 5 6 10"/></svg>',
+    check:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>',
+    bolt:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>',
+    eye:         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+    crowd:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20v-1a3 3 0 0 1 3-3h1M21 20v-1a3 3 0 0 0-3-3h-1"/><circle cx="12" cy="8" r="3"/><path d="M8 20v-2a4 4 0 0 1 8 0v2"/></svg>',
+    cross:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7z"/></svg>',
     queue: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a2 2 0 0 0 0 4v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6a2 2 0 0 0 0-4z"/><path d="M12 8v8"/></svg>',
     book:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18M12 15v4M10 17h4"/></svg>',
     out:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>'
@@ -133,9 +149,17 @@ function renderTabbar(current) {
 function renderRail(user, links, current) {
     document.documentElement.classList.add('has-rail');
 
+    // Icon per section, so a nurse glancing at the rail all day recognises shape as well
+    // as word.
+    const RAIL_ICON = {
+        overview: ICON.chart, queue: ICON.board, departments: ICON.building,
+        staff: ICON.people, reports: ICON.chart
+    };
+
     const items = links.map(link => {
         const here = current === link.key ? ' aria-current="page"' : '';
-        return `<a href="${link.href}"${here}>${escapeHtml(link.label)}</a>`;
+        const icon = RAIL_ICON[link.key] || ICON.board;
+        return `<a href="${link.href}"${here}>${icon}<span>${escapeHtml(link.label)}</span></a>`;
     }).join('');
 
     const shell = document.createElement('div');

@@ -37,9 +37,9 @@ async function loadAppointments() {
 
         if (appointments.length === 0) {
             // An empty screen is an invitation to act, not an apology.
-            tbody.innerHTML = `<tr><td colspan="5" class="empty">
+            tbody.innerHTML = `<p class="empty">
                 No appointments yet. Book one and you will get a queue number straight away.
-            </td></tr>`;
+            </p>`;
             hideBoards();
             tracked = null;
             document.getElementById('whereWhen').textContent = 'Nothing booked.';
@@ -69,13 +69,17 @@ function rowFor(a) {
         ? `<button class="critical tight" data-cancel="${escapeHtml(a.id)}">Cancel</button>`
         : '';
     return `
-        <tr>
-            <td class="ticket-no">${escapeHtml(pad(a.queueNumber))}</td>
-            <td>${escapeHtml(a.departmentName)}</td>
-            <td>${escapeHtml(formatDate(a.date))}</td>
-            <td><span class="badge ${escapeHtml(a.status)}">${escapeHtml(statusWord(a.status))}</span></td>
-            <td>${cancel}</td>
-        </tr>`;
+        <article class="appt">
+            <div class="no">${escapeHtml(pad(a.queueNumber))}</div>
+            <div class="what">
+                <div class="dept">${escapeHtml(a.departmentName)}</div>
+                <div class="when">${escapeHtml(formatDate(a.date))}</div>
+            </div>
+            <div class="side">
+                <span class="badge ${escapeHtml(a.status)}">${escapeHtml(statusWord(a.status))}</span>
+                ${cancel}
+            </div>
+        </article>`;
 }
 
 function statusWord(status) {

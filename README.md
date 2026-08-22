@@ -35,9 +35,28 @@ Then open <http://localhost:8080>.
 The schema is created automatically on first start, along with six departments and three
 demo accounts.
 
+### Demo data
+
+First boot on an empty database seeds a working clinic, so nothing is blank:
+
+- **16 patients** with a fortnight of history — about 520 finished appointments across all
+  six departments, with a realistic scatter of no-shows and cancellations so the reports
+  have something to describe.
+- **Today**: every department has patients already seen, one in the consulting room, and
+  several waiting. The `attended_at` timestamps are spaced by a per-department pace, which
+  is what makes the wait estimate appear rather than staying hidden.
+- **The next five weekdays** of upcoming bookings.
+
+Seeding is deterministic, so the same clinic comes back every time. It takes about 30
+seconds on the first boot (hashing 16 passwords with PBKDF2) and is skipped entirely
+afterwards — later restarts take about 4 seconds.
+
+`reset-demo.bat` wipes and rebuilds it when the demo gets into a strange state.
+
 ### Demo accounts
 
-All use the password `mediqueue123`.
+All use the password `mediqueue123`. The seeded patients use it too, so you can sign in
+as anyone in the queue.
 
 | Role | Email | Can do |
 |---|---|---|

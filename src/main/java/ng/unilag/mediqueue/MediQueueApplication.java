@@ -1,6 +1,7 @@
 package ng.unilag.mediqueue;
 
 import ng.unilag.mediqueue.config.AppConfig;
+import ng.unilag.mediqueue.config.DemoActivitySeeder;
 import ng.unilag.mediqueue.config.DemoDataSeeder;
 import ng.unilag.mediqueue.config.ServiceRegistry;
 import ng.unilag.mediqueue.db.SchemaInitializer;
@@ -85,8 +86,8 @@ public final class MediQueueApplication {
                 new DemoDataSeeder(registry.authService(), registry.departmentService());
 
         if (config.seedDemoAccounts()) {
-            // A public demonstration is a legitimate thing to want, so this no longer
-            // refuses to start.
+            // A public demonstration is a legitimate thing to want, so this does not
+            // refuse to start.
             //
             // An earlier version rejected demo accounts on any HTTPS deployment. That was
             // the wrong control twice over: it could not tell a coursework demo from a
@@ -98,6 +99,12 @@ public final class MediQueueApplication {
             // that; refusing to boot does not. See /api/meta and the demo banner in
             // api.js.
             seeder.seedDemoAccounts();
+
+            // Then a fortnight of clinic activity for those accounts to belong to. An
+            // empty demo shows empty queues and blank reports, and hides the wait
+            // estimate for want of a pace to measure.
+            new DemoActivitySeeder(registry.database(), registry.authService(),
+                    registry.departmentService()).seedIfEmpty();
             return;
         }
         if (config.hasAdminBootstrap()) {

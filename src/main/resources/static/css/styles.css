@@ -180,6 +180,8 @@ main {
     display: flex;
     align-items: center;
 }
+.rail-nav a { gap: .6rem; }
+.rail-nav a svg { width: 20px; height: 20px; flex: 0 0 auto; }
 .rail-nav a:hover { background: var(--green-tint); }
 .rail-nav a[aria-current="page"] {
     background: var(--green);
@@ -296,6 +298,102 @@ main {
 .serving-who { font-size: 1.15rem; font-weight: 600; }
 .serving-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
 .serving.idle .serving-no { color: var(--muted); }
+
+/* ------------------------------------------------------- landing details */
+
+/* Hero illustration. Bordered and lifted like every other surface, so it reads as part
+   of the system rather than a picture dropped on top of it. */
+.hero-art { display: block; }
+.hero-art img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 2px solid var(--navy);
+    border-radius: var(--r-lg);
+    box-shadow: var(--lift-lg);
+    background: var(--card);
+}
+
+/* Eyebrow pill above the headline. */
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .4rem .8rem;
+    margin-bottom: 1rem;
+    background: var(--card);
+    border: 2px solid var(--navy);
+    border-radius: var(--r-sm);
+    box-shadow: var(--lift);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.eyebrow svg { width: 15px; height: 15px; }
+
+/* Square icon chip at the head of a feature card. */
+.icon-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px; height: 44px;
+    margin-bottom: .75rem;
+    background: #D9E6FF;
+    border: 2px solid var(--navy);
+    border-radius: var(--r-sm);
+    color: var(--navy);
+}
+.icon-chip svg { width: 22px; height: 22px; }
+
+/* Bordered department tiles. */
+.tiles { display: grid; gap: .75rem; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 860px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
+.tile {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .8rem .9rem;
+    background: var(--card);
+    border: 2px solid var(--navy);
+    border-radius: var(--r-sm);
+    font-weight: 600;
+    font-size: .95rem;
+}
+.tile svg { width: 20px; height: 20px; color: var(--green); flex: 0 0 auto; }
+
+/* ----------------------------------------------- patient appointment list */
+
+/*
+ * Cards rather than a table on the patient side. A five-column table forces sideways
+ * scrolling on a phone to reach the status and the cancel button, which are the two
+ * things a patient came for. Staff keep the table: they are on a desktop and want density.
+ */
+.appt-list { display: grid; gap: .75rem; }
+.appt {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: .5rem .9rem;
+    align-items: center;
+    padding: .9rem 1rem;
+    background: var(--card);
+    border: 2px solid var(--navy);
+    border-radius: var(--r-sm);
+}
+.appt .no {
+    font-family: Montserrat, sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+    min-width: 2.2ch;
+}
+.appt .what { min-width: 0; }
+.appt .dept { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.appt .when { font-size: .88rem; color: var(--muted); }
+.appt .side { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; }
 
 /* ------------------------------------------------------------------ chips */
 
@@ -462,7 +560,13 @@ tbody tr:hover td { background: var(--green-tint); }
 
 /* ------------------------------------------------------------ stat tiles */
 
-.stat { text-align: left; }
+.stat { text-align: left; position: relative; }
+/* The icon labels the tile without competing with the figure, so it sits in the corner
+   at low contrast rather than beside the number. */
+.stat .stat-icon {
+    position: absolute; top: 1.25rem; right: 1.25rem;
+    width: 22px; height: 22px; color: var(--muted); opacity: .55;
+}
 .stat .n {
     font-family: Montserrat, sans-serif;
     font-weight: 800;

@@ -94,7 +94,10 @@ public final class StaticFileHandler implements HttpHandler {
             case "svg" -> "image/svg+xml";
             case "png" -> "image/png";
             case "jpg", "jpeg" -> "image/jpeg";
+            case "webp" -> "image/webp";
+            case "avif" -> "image/avif";
             case "ico" -> "image/x-icon";
+            case "woff2" -> "font/woff2";
             default -> "application/octet-stream";
         };
     }

@@ -7,6 +7,15 @@
     <link rel="icon" href="/img/mark.svg" type="image/svg+xml">
     <link rel="icon" href="/img/favicon-32.png" sizes="32x32">
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+
+    <!-- Link preview. Without these a shared MediQueue link renders as a blank card. -->
+    <meta name="description" content="Book at a public health centre and watch your place in the queue from your phone, instead of waiting in a crowded hall.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="MediQueue — track your turn">
+    <meta property="og:description" content="Book at a public health centre and watch your place in the queue from your phone, instead of waiting in a crowded hall.">
+    <meta property="og:image" content="/img/social.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -21,6 +30,7 @@
 <main style="padding-bottom:3rem">
     <div class="grid two" style="align-items:center">
         <div>
+            <p class="eyebrow" id="eyebrow">Smart healthcare routing</p>
             <h1>Skip the wait,<br>track your turn.</h1>
             <p class="lede">
                 Book at a public health centre and get a queue number straight away. Watch
@@ -33,25 +43,47 @@
             </div>
         </div>
 
-        <!-- The hero is the product itself: a real live-status card, not an illustration. -->
-        <section class="card status is-next" aria-label="Example queue status">
-            <span class="label position-label">Your position</span>
-            <div class="position">1<span class="ord">st</span></div>
-            <div class="pips" role="img" aria-label="You are next">
-                <span class="pip mine"></span>
-            </div>
-            <p class="status-say">You are next. Head to the consulting room.</p>
-            <div class="status-split">
-                <div><span class="label">Your ticket</span><div class="v">07</div></div>
-                <div><span class="label">Now serving</span><div class="v">06</div></div>
-            </div>
-            <p class="hint">Updates on its own every 5 seconds</p>
-        </section>
+        <!--
+          WebP first, PNG as the fallback. The illustration is flat colour, so a quantised
+          PNG keeps the outlines crisp where a JPEG would blur them and band the fills.
+          Dimensions are set so the browser reserves the space and the headline does not
+          jump when the image arrives.
+        -->
+        <picture class="hero-art">
+            <source srcset="/img/hero.webp" type="image/webp">
+            <img src="/img/hero.png" width="1400" height="788"
+                 alt="A patient standing outside a health centre, checking her place in the
+                      queue on her phone while others wait on benches under the walkway.">
+        </picture>
     </div>
+
+    <!--
+      The live status card sits below the hero rather than inside it. Beside the
+      illustration the two competed for the same glance; here it answers the question the
+      headline raises, which is what the patient actually sees while they wait.
+    -->
+    <h2 style="margin:2.5rem 0 .35rem">This is what you watch while you wait</h2>
+    <p class="muted" style="margin-bottom:1.25rem">No refreshing. It changes on its own as
+        staff attend to each patient.</p>
+
+    <section class="card status is-next" aria-label="Example queue status">
+        <span class="label position-label">Your position</span>
+        <div class="position">1<span class="ord">st</span></div>
+        <div class="pips" role="img" aria-label="You are next">
+            <span class="pip mine"></span>
+        </div>
+        <p class="status-say">You are next. Head to the consulting room.</p>
+        <div class="status-split">
+            <div><span class="label">Your ticket</span><div class="v">07</div></div>
+            <div><span class="label">Now serving</span><div class="v">06</div></div>
+        </div>
+        <p class="hint">Updates on its own every 5 seconds</p>
+    </section>
 
     <h2 style="margin:2.5rem 0 1rem">Designed for immediate clarity</h2>
     <div class="grid three">
         <section class="card">
+            <span class="icon-chip" data-icon="calendar"></span>
             <h3>You get a number, not a seat</h3>
             <p class="muted">
                 Choose a department and a day. Your ticket is issued the moment you book,
@@ -59,6 +91,7 @@
             </p>
         </section>
         <section class="card">
+            <span class="icon-chip" data-icon="eye"></span>
             <h3>The queue comes to you</h3>
             <p class="muted">
                 Your position updates on its own as staff attend to each patient. No
@@ -66,6 +99,7 @@
             </p>
         </section>
         <section class="card">
+            <span class="icon-chip" data-icon="board"></span>
             <h3>Staff run one screen</h3>
             <p class="muted">
                 Nurses see the whole day in ticket order, call patients forward, and record
@@ -76,13 +110,13 @@
 
     <section class="card" style="margin-top:1.5rem">
         <div class="card-head"><h2>Supported departments</h2></div>
-        <div class="chips">
-            <span class="chip">General Outpatient</span>
-            <span class="chip">Antenatal Care</span>
-            <span class="chip">Immunisation</span>
-            <span class="chip">Pharmacy</span>
-            <span class="chip">Laboratory</span>
-            <span class="chip">Dental</span>
+        <div class="tiles" id="deptTiles">
+            <span class="tile" data-icon="cross">General Outpatient</span>
+            <span class="tile" data-icon="people">Antenatal Care</span>
+            <span class="tile" data-icon="check">Immunisation</span>
+            <span class="tile" data-icon="cross">Pharmacy</span>
+            <span class="tile" data-icon="chart">Laboratory</span>
+            <span class="tile" data-icon="check">Dental</span>
         </div>
     </section>
 
@@ -111,5 +145,13 @@
 </main>
 
 <script src="/js/api.js"></script>
+<script>
+    // Icons live in api.js so one definition serves every page. Painting them from a
+    // data attribute keeps the markup readable instead of inlining SVG eight times.
+    document.querySelectorAll('[data-icon]').forEach(el => {
+        el.insertAdjacentHTML('afterbegin', ICON[el.dataset.icon] || '');
+    });
+    document.getElementById('eyebrow').insertAdjacentHTML('afterbegin', ICON.bolt);
+</script>
 </body>
 </html>
