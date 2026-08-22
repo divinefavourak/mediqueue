@@ -116,10 +116,12 @@ public final class StaticFileHandler implements HttpHandler {
                 <head><meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>Page not found - MediQueue</title>
+                <link rel="icon" href="/img/mark.svg" type="image/svg+xml">
                 <link rel="stylesheet" href="/css/styles.css"></head>
                 <body class="centred">
                   <main>
-                    <a class="wordmark" href="/" style="display:inline-block;margin-bottom:1.25rem">MediQueue</a>
+                    <a class="wordmark" href="/" style="margin-bottom:1.25rem">
+                      <img src="/img/mark.svg" alt="" width="22" height="22">MediQueue</a>
                     <section class="sheet">
                       <h1 style="font-size:1.5rem">No such page</h1>
                       <p class="muted">That address does not lead anywhere. Check the link, or start again.</p>

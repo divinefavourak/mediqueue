@@ -115,9 +115,19 @@ body.centred .demo-banner {
     border-bottom: 1px solid var(--rule);
 }
 
-/* Deliberately plain. The ticket idea is already carried by the stub strip and the
-   perforated stubs; a third reference beside the name only read as a stray glyph. */
-.wordmark { font-size: 1.2rem; text-decoration: none; letter-spacing: -.04em; }
+/* The mark sits before the name, not after it. An earlier version trailed a glyph on the
+   end of the word, which read as a stray icon rather than a logo. */
+.wordmark {
+    font-size: 1.2rem;
+    text-decoration: none;
+    letter-spacing: -.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+}
+/* Optical alignment: the tile's cap height sits slightly above the wordmark's, so a
+   nudge down centres it against the letterforms rather than against the line box. */
+.wordmark img { display: block; transform: translateY(.5px); }
 
 .bar nav { display: flex; gap: 1.1rem; align-items: baseline; flex-wrap: wrap; }
 .bar nav a {

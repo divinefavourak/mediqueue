@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="MediQueue">
+  <title>MediQueue</title>
+  <!--
+    One split-flap tile off the queue board: a dark well, an amber digit, and the hinge
+    seam across the middle. It is the same object the patient dashboard animates when a
+    patient moves up the queue, so the mark and the product are the same shape.
+
+    The digit is 1 on purpose. It is the state the whole product is trying to reach:
+    you are next.
+
+    Two details earn their place. The amber edge keeps the tile visible when the mark sits
+    on the board itself, where the fill would otherwise disappear and leave the seam
+    floating as a stray line. And the numeral is geometry rather than SVG <text>, so it
+    renders identically with no webfont loaded, which is the situation a favicon is
+    always in.
+
+    Note: SVG is XML, so a double hyphen is illegal inside these comments. It makes the
+    file malformed and browsers show a broken image with no error at all.
+  -->
+  <rect x="2.5" y="2.5" width="27" height="27" rx="4.5" fill="#0E1F19"/>
+
+  <!-- The digit 1: stem, base bar, and the flag stroked rather than outlined. -->
+  <g fill="#FFB627">
+    <rect x="13.9" y="6.2" width="4.5" height="15.7"/>
+    <rect x="8.9" y="21.9" width="14.4" height="3.7"/>
+  </g>
+  <path d="M15.3 8.1 L10.3 11.6" stroke="#FFB627" stroke-width="3.7" fill="none"/>
+
+  <!-- The seam, over the digit as on a real flap. Kept light so it does not sever the
+       numeral at favicon size. -->
+  <rect x="2.5" y="15.6" width="27" height="0.8" fill="#000" opacity=".42"/>
+
+  <!-- Defines the tile against a dark ground. Drawn last so nothing overlaps it. -->
+  <rect x="3.15" y="3.15" width="25.7" height="25.7" rx="3.9"
+        fill="none" stroke="#FFB627" stroke-opacity=".3" stroke-width="1.3"/>
+</svg>

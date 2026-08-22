@@ -98,7 +98,8 @@ function renderTopbar(user, links = []) {
 
     const header = `
         <header class="bar">
-            <a class="wordmark" href="${user ? user.landingPage : '/'}">MediQueue</a>
+            <a class="wordmark" href="${user ? user.landingPage : '/'}">
+                <img src="/img/mark.svg" alt="" width="22" height="22">MediQueue</a>
             <nav>
                 ${nav}
                 ${user ? `<span class="who">${escapeHtml(user.fullName)}</span>` : ''}
