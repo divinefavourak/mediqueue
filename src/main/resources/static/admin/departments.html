@@ -16,45 +16,43 @@
 
     <div id="notice" class="notice"></div>
 
-    <section class="sheet">
+    <section class="card">
         <h2>Add a department</h2>
         <form id="departmentForm">
             <div class="row">
                 <div>
-                    <label for="name">Name</label>
+                    <label class="label" for="name">Name</label>
                     <input type="text" id="name" name="name" required placeholder="Physiotherapy">
                 </div>
                 <div>
-                    <label for="opensAt">Opens</label>
+                    <label class="label" for="opensAt">Opens</label>
                     <input type="time" id="opensAt" name="opensAt" value="08:00" required>
                 </div>
                 <div>
-                    <label for="closesAt">Closes</label>
+                    <label class="label" for="closesAt">Closes</label>
                     <input type="time" id="closesAt" name="closesAt" value="16:00" required>
                 </div>
                 <div>
-                    <label for="dailyCapacity">Patients a day</label>
-                    <input type="number" id="dailyCapacity" name="dailyCapacity"
-                           value="40" min="1" max="500" required>
+                    <label class="label" for="dailyCapacity">Patients a day</label>
+                    <input type="number" id="dailyCapacity" name="dailyCapacity" value="40"
+                           min="1" max="500" required>
                 </div>
             </div>
             <button type="submit">Add department</button>
         </form>
     </section>
 
-    <section class="sheet">
-        <h2>All departments</h2>
-        <div class="ledger-wrap">
-            <table>
-                <thead>
-                <tr><th>Name</th><th>Hours</th><th>Capacity</th><th>Booking</th><th></th></tr>
-                </thead>
-                <tbody id="departmentRows">
-                <tr><td colspan="5" class="empty">Loading…</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
+    <div class="card-head"><h2>All departments</h2></div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr><th>Name</th><th>Hours</th><th>Capacity</th><th>Booking</th><th></th></tr>
+            </thead>
+            <tbody id="departmentRows">
+            <tr><td colspan="5" class="empty">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
 </main>
 
 <script src="/js/api.js"></script>
@@ -63,12 +61,13 @@
         const user = await requireUser(['ADMIN']);
         if (!user) return;
 
-        renderTopbar(user, [
-            { href: '/admin/dashboard.html', label: 'Overview' },
-            { href: '/admin/departments.html', label: 'Departments' },
-            { href: '/admin/staff.html', label: 'Staff' },
-            { href: '/admin/reports.html', label: 'Reports' }
-        ]);
+        renderRail(user, [
+            { key: 'overview',    href: '/admin/dashboard.html',   label: 'Overview' },
+            { key: 'queue',       href: '/staff/dashboard.html',   label: 'Queue board' },
+            { key: 'departments', href: '/admin/departments.html', label: 'Departments' },
+            { key: 'staff',       href: '/admin/staff.html',       label: 'Staff' },
+            { key: 'reports',     href: '/admin/reports.html',     label: 'Reports' }
+        ], 'departments');
 
         await loadDepartments();
     });
@@ -87,12 +86,12 @@
 
             tbody.innerHTML = departments.map(d => `
                 <tr>
-                    <td>${escapeHtml(d.name)}</td>
-                    <td class="mono" style="font-size:.86rem">${escapeHtml(d.opensAt)}–${escapeHtml(d.closesAt)}</td>
-                    <td class="mono" style="font-size:.86rem">${escapeHtml(d.dailyCapacity)} a day</td>
-                    <td><span class="stamp ${d.active ? 'OPEN' : 'CLOSED'}">${d.active ? 'Open' : 'Closed'}</span></td>
+                    <td><strong>${escapeHtml(d.name)}</strong></td>
+                    <td>${escapeHtml(d.opensAt)}–${escapeHtml(d.closesAt)}</td>
+                    <td>${escapeHtml(d.dailyCapacity)} a day</td>
+                    <td><span class="badge ${d.active ? 'OPEN' : 'CLOSED'}">${d.active ? 'Open' : 'Closed'}</span></td>
                     <td>${d.active
-                        ? `<button class="tight quiet" data-close="${escapeHtml(d.id)}">Close bookings</button>`
+                        ? `<button class="secondary tight" data-close="${escapeHtml(d.id)}">Close bookings</button>`
                         : '<span class="muted">—</span>'}</td>
                 </tr>`).join('');
 

@@ -10,14 +10,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = await requireUser(['ADMIN', 'STAFF']);
     if (!user) return;
 
-    const links = [{ href: '/staff/dashboard.html', label: 'Queue board' }];
-    if (user.canAdminister) {
-        links.unshift(
-            { href: '/admin/dashboard.html', label: 'Overview' },
-            { href: '/admin/departments.html', label: 'Departments' },
-            { href: '/admin/staff.html', label: 'Staff' });
-    }
-    renderTopbar(user, links);
+    // Nurses reach reports too, but not the administration sections.
+    const links = user.canAdminister
+        ? [{ key: 'overview',    href: '/admin/dashboard.html',   label: 'Overview' },
+           { key: 'queue',       href: '/staff/dashboard.html',   label: 'Queue board' },
+           { key: 'departments', href: '/admin/departments.html', label: 'Departments' },
+           { key: 'staff',       href: '/admin/staff.html',       label: 'Staff' },
+           { key: 'reports',     href: '/admin/reports.html',     label: 'Reports' }]
+        : [{ key: 'queue',       href: '/staff/dashboard.html',   label: 'Queue board' },
+           { key: 'reports',     href: '/admin/reports.html',     label: 'Reports' }];
+    renderRail(user, links, 'reports');
 
     // The range spans 30 days each way. A history-only range would hide every upcoming
     // appointment and report zero on a newly installed system, which looks broken.

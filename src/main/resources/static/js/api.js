@@ -90,7 +90,80 @@ async function markDemoInstance() {
 
 document.addEventListener('DOMContentLoaded', markDemoInstance);
 
-/** Renders the shared header. */
+/* Icons for the mobile action bar. Inline so the bar needs no extra request and works
+   before any font or icon set has loaded. */
+const ICON = {
+    queue: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a2 2 0 0 0 0 4v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6a2 2 0 0 0 0-4z"/><path d="M12 8v8"/></svg>',
+    book:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18M12 15v4M10 17h4"/></svg>',
+    out:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>'
+};
+
+/**
+ * Fixed bar at the foot of patient screens.
+ *
+ * Patients use this standing up, one-handed, in a queue. Primary navigation belongs
+ * within thumb reach rather than in a header they have to stretch for.
+ */
+function renderTabbar(current) {
+    const tab = (href, key, label) => {
+        const here = current === key ? ' aria-current="page"' : '';
+        return `<a href="${href}"${here}>${ICON[key]}<span>${label}</span></a>`;
+    };
+    document.body.insertAdjacentHTML('beforeend', `
+        <nav class="tabbar" aria-label="Main">
+            ${tab('/patient/dashboard.html', 'queue', 'My queue')}
+            ${tab('/patient/book.html', 'book', 'Book')}
+            <a href="#" id="tabSignOut">${ICON.out}<span>Sign out</span></a>
+        </nav>
+    `);
+    document.getElementById('tabSignOut').addEventListener('click', async event => {
+        event.preventDefault();
+        await api('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login.html';
+    });
+}
+
+/**
+ * Side rail for staff and administrators.
+ *
+ * These screens stay open all day and keep gaining sections, so navigation sits down the
+ * side where it can grow, rather than in a header row that runs out of width. Collapses
+ * to a horizontal strip on narrow screens.
+ */
+function renderRail(user, links, current) {
+    document.documentElement.classList.add('has-rail');
+
+    const items = links.map(link => {
+        const here = current === link.key ? ' aria-current="page"' : '';
+        return `<a href="${link.href}"${here}>${escapeHtml(link.label)}</a>`;
+    }).join('');
+
+    const shell = document.createElement('div');
+    shell.className = 'shell';
+    shell.innerHTML = `
+        <aside class="rail">
+            <a class="wordmark" href="${user.landingPage}">
+                <img src="/img/mark.svg" alt="" width="24" height="24">MediQueue</a>
+            <p class="org">${escapeHtml(user.fullName)}</p>
+            <nav class="rail-nav" aria-label="Main">${items}</nav>
+            <div class="rail-foot">
+                <button class="secondary tight" id="railSignOut">Sign out</button>
+            </div>
+        </aside>
+    `;
+
+    // Move the existing <main> inside the shell so the rail and content sit side by side.
+    const main = document.querySelector('main');
+    document.body.insertBefore(shell, main);
+    shell.appendChild(main);
+
+    document.getElementById('railSignOut').addEventListener('click', async () => {
+        await api('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login.html';
+    });
+}
+
+/** Renders the shared header. Public and patient screens only. */
 function renderTopbar(user, links = []) {
     const nav = links
         .map(link => `<a href="${link.href}">${escapeHtml(link.label)}</a>`)

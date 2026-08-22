@@ -24,6 +24,16 @@ import java.util.List;
  */
 public final class QueueService {
 
+    /**
+     * Gaps needed before a wait estimate is offered at all.
+     *
+     * <p>Four gaps means five patients have actually been seen today, which is the point
+     * at which a median stops being an accident. Below it the estimate is withheld
+     * entirely rather than shown with a caveat, because people read the number and skip
+     * the caveat.
+     */
+    private static final int MIN_SAMPLES_FOR_ESTIMATE = 4;
+
     private final AppointmentRepository appointments;
     private final DepartmentRepository departments;
 
@@ -50,13 +60,41 @@ public final class QueueService {
             // than a misleading number that would look like a place in the queue.
             return new QueuePosition(
                     appointment.getId(), appointment.getQueueNumber(), appointment.getDepartmentName(),
-                    appointment.getStatus(), 0, 0, totalWaiting, nowServing);
+                    appointment.getStatus(), 0, 0, totalWaiting, nowServing, null);
         }
 
         int ahead = appointments.countAheadOf(departmentId, date, appointment.getQueueNumber());
         return new QueuePosition(
                 appointment.getId(), appointment.getQueueNumber(), appointment.getDepartmentName(),
-                appointment.getStatus(), ahead, ahead + 1, totalWaiting, nowServing);
+                appointment.getStatus(), ahead, ahead + 1, totalWaiting, nowServing,
+                estimateMinutes(departmentId, date, ahead));
+    }
+
+    /**
+     * How much longer this patient is likely to wait, or null when today has not produced
+     * enough evidence to guess.
+     *
+     * <p>Multiplies the number of patients ahead by the pace the department is actually
+     * achieving today, measured from the gaps between patients being seen. It is a real
+     * measurement rather than a fixed "10 minutes per patient" assumption, so a slow
+     * morning shows as a longer wait instead of a reassuring lie.
+     *
+     * <p>Only today's own data is used. Yesterday's pace says little about a clinic that
+     * is short-staffed this morning.
+     */
+    private Integer estimateMinutes(long departmentId, LocalDate date, int ahead) {
+        // An estimate for a future day would be pure invention: the pace is measured from
+        // patients seen on the day itself, and none have been.
+        if (!date.equals(LocalDate.now())) {
+            return null;
+        }
+        if (ahead == 0) {
+            return 0;
+        }
+        return appointments.servicePace(departmentId, date)
+                .filter(pace -> pace.samples() >= MIN_SAMPLES_FOR_ESTIMATE)
+                .map(pace -> (int) Math.round(pace.medianMinutes() * ahead))
+                .orElse(null);
     }
 
     /** The whole queue for a department on a day, for the staff board (4.3, bullet 1). */

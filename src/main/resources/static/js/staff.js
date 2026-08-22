@@ -1,21 +1,35 @@
 /*
  * The nurse's queue board.
  *
- * This screen stays open all day, so it is a register first and a display second: dense,
- * legible, in ticket order. The board strip at the top mirrors what patients see in the
- * hall, so staff and patients are never reading different numbers.
+ * Kept open all day, so it is a register first and a display second. The patient
+ * currently in the room is lifted out of the table with their two actions attached,
+ * because that is the one the nurse acts on most often.
+ *
+ * Per-row "Seen" and "Absent" stay as well. A patient who never got called still has to
+ * be recordable, and a board offering only "Cancel" on its rows cannot do that.
  */
 
 const REFRESH_MS = 5000;
 let timer = null;
+let board = null;
+
+const RAIL = [
+    { key: 'queue',       href: '/staff/dashboard.html',     label: 'Queue board' },
+    { key: 'departments', href: '/admin/departments.html',   label: 'Departments' },
+    { key: 'staff',       href: '/admin/staff.html',         label: 'Staff' },
+    { key: 'reports',     href: '/admin/reports.html',       label: 'Reports' }
+];
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = await requireUser(['STAFF', 'ADMIN']);
     if (!user) return;
 
-    const links = [{ href: '/staff/dashboard.html', label: 'Queue board' }];
-    if (user.canAdminister) links.push({ href: '/admin/dashboard.html', label: 'Admin' });
-    renderTopbar(user, links);
+    // Nurses do not administer departments or accounts, so those sections are absent
+    // rather than present-and-forbidden.
+    const links = user.canAdminister
+        ? [{ key: 'overview', href: '/admin/dashboard.html', label: 'Overview' }, ...RAIL]
+        : [RAIL[0], RAIL[3]];
+    renderRail(user, links, 'queue');
 
     document.getElementById('date').value = today();
 
@@ -25,11 +39,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('departmentId').addEventListener('change', refresh);
     document.getElementById('date').addEventListener('change', refresh);
     document.getElementById('callNext').addEventListener('click', callNext);
+    document.getElementById('servingSeen').addEventListener('click', () => actOnServing('attend'));
+    document.getElementById('servingAbsent').addEventListener('click', () => actOnServing('skip'));
 
     timer = setInterval(refresh, REFRESH_MS);
 });
 
-/** Fills the selector, defaulting to the nurse's own department. */
 async function loadDepartments(user) {
     const select = document.getElementById('departmentId');
     try {
@@ -41,7 +56,6 @@ async function loadDepartments(user) {
         select.innerHTML = departments
             .map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`)
             .join('');
-
         // A nurse should land on their own department, not an arbitrary one.
         if (user.departmentId) select.value = user.departmentId;
     } catch (error) {
@@ -55,49 +69,57 @@ async function refresh() {
     if (!departmentId || !date) return;
 
     try {
-        render(await api(`/api/queue/${departmentId}?date=${encodeURIComponent(date)}`));
+        board = await api(`/api/queue/${departmentId}?date=${encodeURIComponent(date)}`);
+        render();
     } catch (error) {
         console.warn('Queue refresh failed:', error.message);
     }
 }
 
-function render(board) {
+function render() {
     const rows = board.appointments;
-    const tbody = document.getElementById('queueRows');
-    const serving = rows.find(a => a.status === 'IN_PROGRESS');
-    const attended = rows.filter(a => a.status === 'ATTENDED').length;
-
     const select = document.getElementById('departmentId');
-    document.getElementById('boardWhere').textContent =
-        select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '—';
-    document.getElementById('boardWhen').textContent = formatDate(board.date);
+    const attended = rows.filter(a => a.status === 'ATTENDED').length;
+    const serving = rows.find(a => a.status === 'IN_PROGRESS');
 
-    const servingFlip = document.getElementById('nowServing');
-    servingFlip.classList.toggle('dim', !serving);
-    setFlip(servingFlip, serving ? pad(serving.queueNumber) : '––');
-    setFlip(document.getElementById('stillWaiting'), pad(board.waiting));
-
-    document.getElementById('boardSay').textContent =
-        board.total === 0 ? 'Nobody booked for this day.'
-        : serving ? `Seeing ${serving.patientName}.`
-        : board.waiting > 0 ? 'Nobody called yet.'
-        : 'Everyone has been seen.';
-
-    document.getElementById('boardTime').textContent =
-        'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
+    document.getElementById('deptName').textContent =
+        select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : 'Queue board';
+    document.getElementById('chipWaiting').textContent = `${board.waiting} waiting`;
+    document.getElementById('chipSeen').textContent = `${attended} seen today`;
     document.getElementById('registerCount').textContent =
-        board.total === 0 ? '' : `${attended} seen · ${board.waiting} waiting · ${board.total} booked`;
+        board.total === 0 ? '' : `${board.total} booked`;
 
+    renderServing(serving);
+
+    const tbody = document.getElementById('queueRows');
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="empty">
             Nobody is booked for this day. Choose another date, or another department.
         </td></tr>`;
         return;
     }
-
     tbody.innerHTML = rows.map(rowFor).join('');
-    wireActions();
+    wireRowActions();
+}
+
+function renderServing(serving) {
+    const card = document.getElementById('servingCard');
+    const actions = document.getElementById('servingActions');
+
+    if (!serving) {
+        card.classList.add('idle');
+        document.getElementById('servingNo').textContent = '—';
+        document.getElementById('servingWho').textContent =
+            board && board.waiting > 0 ? 'Nobody called yet' : 'Nobody waiting';
+        actions.hidden = true;
+        card.dataset.id = '';
+        return;
+    }
+    card.classList.remove('idle');
+    document.getElementById('servingNo').textContent = pad(serving.queueNumber);
+    document.getElementById('servingWho').textContent = serving.patientName;
+    actions.hidden = false;
+    card.dataset.id = serving.id;
 }
 
 function rowFor(a) {
@@ -106,24 +128,34 @@ function rowFor(a) {
     const live = ['BOOKED', 'WAITING', 'IN_PROGRESS'].includes(a.status);
     const actions = live
         ? `<button class="tight" data-attend="${escapeHtml(a.id)}">Seen</button>
-           <button class="tight quiet" data-skip="${escapeHtml(a.id)}">Absent</button>`
+           <button class="secondary tight" data-skip="${escapeHtml(a.id)}">Absent</button>`
         : '';
-
     return `
         <tr>
             <td class="ticket-no">${escapeHtml(pad(a.queueNumber))}</td>
             <td>${escapeHtml(a.patientName)}</td>
-            <td class="mono" style="font-size:.86rem">${escapeHtml(a.patientPhone) || '—'}</td>
-            <td><span class="stamp ${escapeHtml(a.status)}">${escapeHtml(a.status.replace('_', ' '))}</span></td>
-            <td><span style="display:flex;gap:.4rem;flex-wrap:wrap">${actions}</span></td>
+            <td>${escapeHtml(a.patientPhone) || '<span class="muted">—</span>'}</td>
+            <td><span class="badge ${escapeHtml(a.status)}">${escapeHtml(statusWord(a.status))}</span></td>
+            <td><span class="cell-actions">${actions}</span></td>
         </tr>`;
 }
 
-function wireActions() {
+function statusWord(status) {
+    return { IN_PROGRESS: 'In progress', SKIPPED: 'Absent' }[status]
+        || status.charAt(0) + status.slice(1).toLowerCase();
+}
+
+function wireRowActions() {
     document.querySelectorAll('[data-attend]').forEach(b =>
         b.addEventListener('click', () => act(b, b.dataset.attend, 'attend')));
     document.querySelectorAll('[data-skip]').forEach(b =>
         b.addEventListener('click', () => act(b, b.dataset.skip, 'skip')));
+}
+
+function actOnServing(action) {
+    const id = document.getElementById('servingCard').dataset.id;
+    if (!id) return;
+    act(document.getElementById(action === 'attend' ? 'servingSeen' : 'servingAbsent'), id, action);
 }
 
 /**
@@ -141,6 +173,7 @@ async function act(button, appointmentId, action) {
         await refresh();
     } catch (error) {
         showNotice('notice', error.message);
+    } finally {
         button.disabled = false;
     }
 }

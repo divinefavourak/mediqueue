@@ -11,27 +11,28 @@
 </head>
 <body class="centred">
 <main>
-    <a class="wordmark" href="/" style="margin-bottom:1.25rem"><img src="/img/mark.svg" alt="" width="22" height="22">MediQueue</a>
+    <a class="wordmark" href="/" style="margin-bottom:1.25rem">
+        <img src="/img/mark.svg" alt="" width="26" height="26">MediQueue</a>
 
-    <section class="sheet">
-        <h1 style="font-size:1.5rem">Create your account</h1>
+    <section class="card">
+        <h1>Create your account</h1>
         <p class="muted">Register once, then book whenever you need to.</p>
 
         <div id="notice" class="notice"></div>
 
         <form id="registerForm">
-            <label for="fullName">Full name</label>
+            <label class="label" for="fullName">Full name</label>
             <input type="text" id="fullName" name="fullName" required autocomplete="name"
                    placeholder="Chidi Okafor">
 
-            <label for="email">Email address</label>
+            <label class="label" for="email">Email address</label>
             <input type="email" id="email" name="email" required autocomplete="email"
                    placeholder="you@example.com">
 
-            <label for="phone">Phone number <span style="letter-spacing:0;text-transform:none">(optional)</span></label>
+            <label class="label" for="phone">Phone number (optional)</label>
             <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="0803 000 0000">
 
-            <label for="password">Password</label>
+            <label class="label" for="password">Password</label>
             <input type="password" id="password" name="password" required minlength="8"
                    autocomplete="new-password">
             <p class="hint">At least 8 characters. Length matters more than symbols.</p>
@@ -39,19 +40,17 @@
             <button type="submit">Create account</button>
         </form>
 
-        <hr class="perf">
-        <p class="muted" style="margin:0">
+        <p class="muted" style="margin-top:1.25rem">
             Already registered? <a href="/login.html">Sign in</a>
         </p>
     </section>
 </main>
-
 <script src="/js/api.js"></script>
 <script>
     onSubmit('registerForm', 'notice', async values => {
         await api('/api/auth/register', { method: 'POST', body: values });
-        // Registering signs the patient in, so send them to booking rather than asking
-        // for the password they just chose.
+        // Registering signs the patient in, so send them to booking rather than to an
+        // empty dashboard.
         window.location.href = '/patient/book.html';
     });
 </script>

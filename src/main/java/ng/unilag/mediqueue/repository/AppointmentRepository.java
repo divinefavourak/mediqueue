@@ -48,6 +48,28 @@ public interface AppointmentRepository {
     /** Ticket currently being seen, or 0 when nobody is in progress. */
     int currentlyServing(long departmentId, LocalDate date);
 
+    /**
+     * How fast a department is getting through its queue today.
+     *
+     * @param medianMinutes typical minutes between one patient being seen and the next
+     * @param samples how many gaps that median was taken from
+     */
+    record ServicePace(double medianMinutes, int samples) {
+    }
+
+    /**
+     * Measures the pace of a department's queue from the gaps between consecutive
+     * patients being marked attended.
+     *
+     * <p>This is the only honest basis for a wait estimate in MediQueue. The obvious
+     * alternative, the interval from booked_at to attended_at, mostly measures how far in
+     * advance somebody booked -- days, usually -- and has almost nothing to do with time
+     * spent waiting.
+     *
+     * <p>Empty when the day has produced too few gaps to say anything.
+     */
+    Optional<ServicePace> servicePace(long departmentId, LocalDate date);
+
     /** How many slots are already taken, for the daily capacity check. */
     int countBookedOn(long departmentId, LocalDate date);
 

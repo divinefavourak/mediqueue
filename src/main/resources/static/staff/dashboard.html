@@ -11,69 +11,60 @@
 </head>
 <body>
 <main>
-    <h1>Queue board</h1>
-    <p class="lede">Call patients forward and record who was seen. Refreshes every 5 seconds.</p>
+    <div class="card-head">
+        <div>
+            <h1 id="deptName">Queue board</h1>
+            <div class="chips">
+                <span class="chip on" id="chipWaiting">— waiting</span>
+                <span class="chip" id="chipSeen">— seen today</span>
+            </div>
+        </div>
+        <button class="tight" id="callNext" style="min-height:48px">Call next patient</button>
+    </div>
 
     <div id="notice" class="notice"></div>
 
-    <!-- The same board the patients read, so staff and hall agree on what is showing. -->
-    <section class="board" aria-live="polite">
-        <div class="board-head">
-            <span class="board-where" id="boardWhere">—</span>
-            <span class="label" id="boardWhen">—</span>
+    <!-- The patient in the room, with their actions attached. A nurse acts on whoever is
+         in front of them; making them find a row first is a step that serves nobody. -->
+    <section class="card serving" id="servingCard">
+        <div>
+            <span class="label">Now serving</span>
+            <div class="serving-no" id="servingNo">—</div>
+            <div class="serving-who" id="servingWho">Nobody called yet</div>
         </div>
-        <div class="board-readout">
-            <div class="board-cell">
-                <span class="label">Now serving</span>
-                <span class="flip dim" id="nowServing"><span class="flip-face">––</span></span>
-            </div>
-            <div class="board-cell">
-                <span class="label">Still waiting</span>
-                <span class="flip" id="stillWaiting"><span class="flip-face">00</span></span>
-            </div>
-        </div>
-        <div class="board-line">
-            <span class="board-say" id="boardSay">Choose a department.</span>
-            <span class="board-stamp-time" id="boardTime"></span>
+        <div class="serving-actions" id="servingActions" hidden>
+            <button class="tight" id="servingSeen">Mark as seen</button>
+            <button class="critical tight" id="servingAbsent">Mark as absent</button>
         </div>
     </section>
 
-    <section class="sheet">
+    <section class="card">
         <div class="row">
             <div>
-                <label for="departmentId">Department</label>
+                <label class="label" for="departmentId">Department</label>
                 <select id="departmentId"><option value="">Loading…</option></select>
             </div>
             <div>
-                <label for="date">Date</label>
+                <label class="label" for="date">Date</label>
                 <input type="date" id="date">
-            </div>
-            <div class="shrink">
-                <button id="callNext" class="tight" style="margin-top:1.5rem">Call next patient</button>
             </div>
         </div>
     </section>
 
-    <section class="sheet">
-        <div class="sheet-head">
-            <!-- Not "Today's register": staff routinely look at other days, and the
-                 board header and date picker already say which one. -->
-            <h2>Register</h2>
-            <span class="demo-note" id="registerCount"></span>
-        </div>
-        <div class="ledger-wrap">
-            <table>
-                <thead>
-                <tr>
-                    <th>Ticket</th><th>Patient</th><th>Phone</th><th>Status</th><th>Record</th>
-                </tr>
-                </thead>
-                <tbody id="queueRows">
-                <tr><td colspan="5" class="empty">Loading…</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
+    <div class="card-head">
+        <h2>Register</h2>
+        <span class="muted" id="registerCount"></span>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr><th>Ticket</th><th>Patient</th><th>Phone</th><th>Status</th><th>Record</th></tr>
+            </thead>
+            <tbody id="queueRows">
+            <tr><td colspan="5" class="empty">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
 </main>
 
 <script src="/js/api.js"></script>

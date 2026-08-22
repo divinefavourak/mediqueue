@@ -11,36 +11,33 @@
 </head>
 <body class="centred">
 <main>
-    <a class="wordmark" href="/" style="margin-bottom:1.25rem"><img src="/img/mark.svg" alt="" width="22" height="22">MediQueue</a>
+    <a class="wordmark" href="/" style="margin-bottom:1.25rem">
+        <img src="/img/mark.svg" alt="" width="26" height="26">MediQueue</a>
 
-    <section class="sheet">
-        <h1 style="font-size:1.5rem">Sign in</h1>
+    <section class="card">
+        <h1>Sign in</h1>
         <p class="muted">Your queue number is waiting for you.</p>
 
         <div id="notice" class="notice"></div>
 
         <form id="loginForm">
-            <label for="email">Email address</label>
+            <label class="label" for="email">Email address</label>
             <input type="email" id="email" name="email" required autocomplete="email"
                    placeholder="you@example.com">
 
-            <label for="password">Password</label>
+            <label class="label" for="password">Password</label>
             <input type="password" id="password" name="password" required
                    autocomplete="current-password">
 
             <button type="submit">Sign in</button>
         </form>
 
-        <hr class="perf">
-        <p class="muted" style="margin:0">
+        <p class="muted" style="margin-top:1.25rem">
             New patient? <a href="/register.html">Create an account</a>
         </p>
-        <p class="demo-note" style="margin:.5rem 0 0">
-            Demo: patient@mediqueue.ng · mediqueue123
-        </p>
+        <p class="hint">Demo: patient@mediqueue.ng &middot; mediqueue123</p>
     </section>
 </main>
-
 <script src="/js/api.js"></script>
 <script>
     onSubmit('loginForm', 'notice', async values => {

@@ -223,6 +223,58 @@ public final class JdbcAppointmentRepository implements AppointmentRepository {
         });
     }
 
+    /**
+     * Median minutes between consecutive patients being seen today.
+     *
+     * <p>LAG pairs each attended appointment with the one before it, so the differences
+     * are the real service intervals the department is achieving right now.
+     *
+     * <p>Two guards matter. The median rather than the average, because one long
+     * consultation or a lunch break would drag an average far off. And gaps beyond four
+     * hours are dropped: those are breaks and clerical catch-ups, not service time, and a
+     * clinic that marks ten patients attended at closing time would otherwise poison the
+     * figure for everyone still waiting.
+     */
+    @Override
+    public Optional<ServicePace> servicePace(long departmentId, LocalDate date) {
+        return database.query(connection -> {
+            String sql = """
+                    WITH seen AS (
+                        SELECT attended_at,
+                               LAG(attended_at) OVER (ORDER BY attended_at) AS previous
+                          FROM appointment
+                         WHERE department_id = ? AND appointment_date = ?
+                           AND status = 'ATTENDED' AND attended_at IS NOT NULL
+                    ),
+                    gaps AS (
+                        SELECT EXTRACT(EPOCH FROM (attended_at - previous)) / 60.0 AS minutes
+                          FROM seen
+                         WHERE previous IS NOT NULL
+                    )
+                    SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY minutes) AS median,
+                           COUNT(*) AS samples
+                      FROM gaps
+                     WHERE minutes > 0 AND minutes < 240
+                    """;
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setLong(1, departmentId);
+                ps.setDate(2, Date.valueOf(date));
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        return Optional.<ServicePace>empty();
+                    }
+                    int samples = rs.getInt("samples");
+                    double median = rs.getDouble("median");
+                    // percentile_cont returns SQL NULL over an empty set.
+                    if (samples == 0 || rs.wasNull()) {
+                        return Optional.<ServicePace>empty();
+                    }
+                    return Optional.of(new ServicePace(median, samples));
+                }
+            }
+        });
+    }
+
     @Override
     public int countBookedOn(long departmentId, LocalDate date) {
         // Cancelled slots free up capacity again, so they are excluded.

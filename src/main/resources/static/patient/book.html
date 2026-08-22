@@ -16,14 +16,14 @@
 
     <div id="notice" class="notice"></div>
 
-    <section class="sheet" id="bookSheet">
+    <section class="card" id="bookSheet">
         <form id="bookForm">
-            <label for="departmentId">Department</label>
+            <label class="label" for="departmentId">Department</label>
             <select id="departmentId" name="departmentId" required>
                 <option value="">Loading departments…</option>
             </select>
 
-            <label for="date">Date</label>
+            <label class="label" for="date">Date</label>
             <input type="date" id="date" name="date" required>
             <p class="hint">Weekdays only, up to 60 days ahead.</p>
 
@@ -31,15 +31,11 @@
         </form>
     </section>
 
-    <!-- The confirmation is the ticket itself, notched as if torn from the roll. -->
-    <section id="confirmation" class="receipt" hidden>
-        <span class="label">Your ticket</span>
-        <div class="receipt-no" id="confirmedTicket">—</div>
-        <p class="muted" id="confirmedDetail" style="margin:0"></p>
-        <hr class="perf">
-        <p class="muted" style="margin:0 0 .25rem">
-            Keep this number. You will be called by it.
-        </p>
+    <section id="confirmation" class="card status" hidden>
+        <span class="label position-label">Your ticket</span>
+        <div class="position" id="confirmedTicket">—</div>
+        <p class="status-say" id="confirmedDetail"></p>
+        <p class="muted">Keep this number. You will be called by it.</p>
         <a class="btn" href="/patient/dashboard.html">Watch my place in the queue</a>
     </section>
 </main>
@@ -50,10 +46,8 @@
         const user = await requireUser(['PATIENT']);
         if (!user) return;
 
-        renderTopbar(user, [
-            { href: '/patient/dashboard.html', label: 'Your queue' },
-            { href: '/patient/book.html', label: 'Book' }
-        ]);
+        renderTopbar(user, []);
+        renderTabbar('book');
 
         // The browser refuses past dates too. The server enforces this regardless; this
         // only saves a pointless round trip.
@@ -64,7 +58,6 @@
         try {
             const departments = await api('/api/departments');
             const select = document.getElementById('departmentId');
-
             if (departments.length === 0) {
                 select.innerHTML = '<option value="">No departments are open</option>';
                 showNotice('notice', 'No departments are accepting appointments right now.');
@@ -80,7 +73,6 @@
 
     onSubmit('bookForm', 'notice', async values => {
         const appointment = await api('/api/appointments', { method: 'POST', body: values });
-
         document.getElementById('confirmedTicket').textContent = pad(appointment.queueNumber);
         document.getElementById('confirmedDetail').textContent =
             `${appointment.departmentName} · ${formatFullDate(appointment.date)}`;

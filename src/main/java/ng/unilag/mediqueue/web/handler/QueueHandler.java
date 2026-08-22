@@ -95,6 +95,11 @@ public final class QueueHandler extends ApiHandler {
                 .put("isNext", position.isNext())
                 .put("finished", position.isFinished())
                 .put("summary", position.summary())
+                // Null when today has too little data to estimate honestly. The browser
+                // hides the row entirely rather than showing a dash, so nothing on screen
+                // ever implies a number we do not have.
+                .put("estimatedMinutes", position.estimatedMinutes())
+                .put("estimateText", position.estimateText())
                 .toJson());
     }
 

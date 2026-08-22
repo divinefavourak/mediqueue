@@ -1,21 +1,18 @@
 /*
- * The patient's board.
+ * The patient's live queue status.
  *
  * One job: answer "how much longer?" at arm's length, on a cheap phone, in a hall.
  *
- * Positions poll every 5 seconds. That is the honest choice for a first version -- it
- * survives every proxy and mobile network, needs no persistent connection, and 5 seconds
- * reads as live when a consultation lasts minutes. Server-Sent Events is the upgrade;
- * the JDK's HttpServer supports it by holding the response open.
+ * Position is the largest element and the ticket number is reference material. That is
+ * deliberate: the ticket never changes, while the position is the number being watched.
+ *
+ * Positions poll every 5 seconds. There is no refresh button, because offering one would
+ * tell patients the page does not update itself, which is the entire promise.
  */
 
 const POLL_MS = 5000;
-/* Beyond this the strip stops being countable, so it becomes a proportional bar. */
-const MAX_STUBS = 40;
+const MAX_PIPS = 20;   /* beyond this the marks stop being countable */
 
-/* The whole appointment is kept, not just its id: the position endpoint returns queue
-   figures but not the date, and the board must never claim "Today" for a visit booked
-   three weeks out. */
 let tracked = null;
 let timer = null;
 
@@ -23,10 +20,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = await requireUser(['PATIENT']);
     if (!user) return;
 
-    renderTopbar(user, [
-        { href: '/patient/dashboard.html', label: 'Your queue' },
-        { href: '/patient/book.html', label: 'Book' }
-    ]);
+    renderTopbar(user, []);
+    renderTabbar('queue');
+
+    document.getElementById('greeting').textContent = `Hello, ${user.fullName.split(' ')[0]}`;
 
     await loadAppointments();
     startPolling();
@@ -45,22 +42,17 @@ async function loadAppointments() {
             </td></tr>`;
             hideBoards();
             tracked = null;
+            document.getElementById('whereWhen').textContent = 'Nothing booked.';
             return;
         }
 
         tbody.innerHTML = appointments.map(rowFor).join('');
         wireCancelButtons();
 
-        // Track the soonest appointment still in a queue.
         const live = appointments
             .filter(a => ['BOOKED', 'WAITING', 'IN_PROGRESS'].includes(a.status))
             .sort((a, b) => a.date.localeCompare(b.date))[0];
-
-        // Otherwise show the most recent finished one, so the board is never blank
-        // straight after a visit ends.
-        const recent = appointments
-            .slice()
-            .sort((a, b) => b.date.localeCompare(a.date))[0];
+        const recent = appointments.slice().sort((a, b) => b.date.localeCompare(a.date))[0];
 
         tracked = live || recent || null;
         if (tracked) await refreshPosition();
@@ -74,16 +66,21 @@ async function loadAppointments() {
 function rowFor(a) {
     // Every interpolated value is escaped: names originate in a registration form.
     const cancel = a.cancellable
-        ? `<button class="warn tight" data-cancel="${escapeHtml(a.id)}">Cancel</button>`
+        ? `<button class="critical tight" data-cancel="${escapeHtml(a.id)}">Cancel</button>`
         : '';
     return `
         <tr>
             <td class="ticket-no">${escapeHtml(pad(a.queueNumber))}</td>
             <td>${escapeHtml(a.departmentName)}</td>
             <td>${escapeHtml(formatDate(a.date))}</td>
-            <td><span class="stamp ${escapeHtml(a.status)}">${escapeHtml(a.status.replace('_', ' '))}</span></td>
+            <td><span class="badge ${escapeHtml(a.status)}">${escapeHtml(statusWord(a.status))}</span></td>
             <td>${cancel}</td>
         </tr>`;
+}
+
+function statusWord(status) {
+    return { IN_PROGRESS: 'In progress', SKIPPED: 'Absent' }[status]
+        || status.charAt(0) + status.slice(1).toLowerCase();
 }
 
 function wireCancelButtons() {
@@ -106,93 +103,88 @@ function wireCancelButtons() {
 
 async function refreshPosition() {
     if (!tracked) return;
-
     try {
         const p = await api(`/api/queue/position/${tracked.id}`);
-        p.finished ? renderVerdict(p) : renderBoard(p);
+        p.finished ? renderVerdict(p) : renderStatus(p);
     } catch (error) {
-        // A network blip should not replace a live queue position with an error. Log it
-        // and let the next tick retry.
+        // A network blip should not replace a live position with an error. Retry next tick.
         console.warn('Could not refresh position:', error.message);
     }
 }
 
-function renderBoard(p) {
+function renderStatus(p) {
     show('livePosition'); hide('verdictBoard');
 
-    document.getElementById('boardWhere').textContent = p.departmentName;
-    document.getElementById('boardWhen').textContent = whenLabel();
+    const card = document.getElementById('livePosition');
+    card.classList.toggle('is-next', p.isNext);
 
-    setFlip(document.getElementById('ticketNumber'), pad(p.queueNumber));
+    document.getElementById('whereWhen').textContent =
+        `${p.departmentName} · ${whenLabel()}`;
 
-    // An empty well reads as "not started yet" on a real board; a word would not fit.
-    const serving = document.getElementById('nowServing');
-    serving.classList.toggle('dim', p.nowServing === 0);
-    setFlip(serving, p.nowServing > 0 ? pad(p.nowServing) : '––');
-
-    renderStubs(p);
-
-    document.getElementById('aheadLabel').textContent =
-        p.aheadCount === 0 ? 'You are at the front' :
-        p.aheadCount === 1 ? '1 patient ahead of you' :
-        `${p.aheadCount} patients ahead of you`;
-
+    document.getElementById('positionNumber').innerHTML =
+        `${p.position}<span class="ord">${ordinal(p.position)}</span>`;
     document.getElementById('positionSummary').textContent = p.summary;
-    document.getElementById('positionNumber').textContent = p.position;
+
+    renderPips(p);
+
+    // Shown only when the day has produced enough data to be honest. There is no
+    // placeholder or dash: an absent estimate leaves no trace on screen.
+    const estimate = document.getElementById('estimate');
+    if (p.estimatedMinutes !== null && p.estimatedMinutes !== undefined && !p.isNext) {
+        document.getElementById('estimateText').textContent = p.estimateText;
+        estimate.hidden = false;
+    } else {
+        estimate.hidden = true;
+    }
+
+    document.getElementById('ticketNumber').textContent = pad(p.queueNumber);
+    document.getElementById('nowServing').textContent =
+        p.nowServing > 0 ? pad(p.nowServing) : 'Not started';
     document.getElementById('lastChecked').textContent =
-        'Checked ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        'Updates on its own · checked ' +
+        new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+/** 1st, 2nd, 3rd, 4th. */
+function ordinal(n) {
+    if (n % 100 >= 11 && n % 100 <= 13) return 'th';
+    return { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th';
 }
 
 /**
- * The stub strip: one ticket stub per waiting patient, yours lit.
+ * The queue as a row of marks: those ahead, then you.
  *
- * This is the part a patient reads first. A number tells you where you are; the strip
- * shows you, which is faster and works at arm's length. Above MAX_STUBS the stubs stop
- * being countable, so it degrades to three proportional blocks rather than lying with a
- * strip nobody can read.
+ * A number tells you where you are; the marks show you, which is faster at arm's length.
+ * Above MAX_PIPS they stop being countable, so the strip is dropped rather than shown as
+ * a smear that implies a count nobody can take.
  */
-function renderStubs(p) {
-    const strip = document.getElementById('stubs');
-    const waiting = Math.max(p.totalWaiting, 1);
-    const ahead = Math.min(p.aheadCount, waiting - 1);
-    const behind = Math.max(waiting - ahead - 1, 0);
+function renderPips(p) {
+    const strip = document.getElementById('pips');
+    const ahead = p.aheadCount;
 
-    if (waiting > MAX_STUBS) {
-        strip.innerHTML =
-            `<span class="stub ahead" style="flex:${ahead}"></span>` +
-            `<span class="stub mine" style="flex:0 0 6px"></span>` +
-            `<span class="stub behind" style="flex:${behind}"></span>`;
-    } else {
-        strip.innerHTML =
-            '<span class="stub ahead"></span>'.repeat(ahead) +
-            '<span class="stub mine"></span>' +
-            '<span class="stub behind"></span>'.repeat(behind);
+    if (ahead > MAX_PIPS) {
+        strip.innerHTML = '';
+        strip.setAttribute('aria-label', `${ahead} patients ahead of you`);
+        return;
     }
-
+    strip.innerHTML = '<span class="pip ahead"></span>'.repeat(ahead) + '<span class="pip mine"></span>';
     strip.setAttribute('aria-label',
-        `You are number ${p.position} of ${p.totalWaiting} waiting.`);
+        ahead === 0 ? 'You are next' : `${ahead} ahead of you`);
 }
 
-/** Once the visit is over the board stamps it, the way the desk stamps a folder. */
 function renderVerdict(p) {
     hide('livePosition'); show('verdictBoard');
 
-    document.getElementById('verdictWhere').textContent = p.departmentName;
-    document.getElementById('verdictWhen').textContent = whenLabel();
-
-    const stamp = document.getElementById('verdictStamp');
-    const bad = p.status === 'SKIPPED' || p.status === 'CANCELLED';
-    stamp.textContent = { ATTENDED: 'Seen', SKIPPED: 'Missed', CANCELLED: 'Cancelled' }[p.status] || p.status;
-    stamp.classList.toggle('bad', bad);
-
+    document.getElementById('whereWhen').textContent = `${p.departmentName} · ${whenLabel()}`;
+    document.getElementById('verdictWhen').textContent = 'This appointment';
+    document.getElementById('verdictStamp').textContent =
+        { ATTENDED: 'Seen', SKIPPED: 'Marked absent', CANCELLED: 'Cancelled' }[p.status] || p.status;
     document.getElementById('verdictSay').textContent = p.summary;
-    document.getElementById('positionNumber').textContent = p.position;
 
     stopPolling();
     loadAppointmentsQuietly();
 }
 
-/** Refreshes the table after a visit ends, without re-entering the polling loop. */
 async function loadAppointmentsQuietly() {
     try {
         const appointments = await api('/api/appointments/mine');
@@ -200,15 +192,10 @@ async function loadAppointmentsQuietly() {
             document.getElementById('appointmentRows').innerHTML = appointments.map(rowFor).join('');
             wireCancelButtons();
         }
-    } catch { /* the board already shows the outcome */ }
+    } catch { /* the card already shows the outcome */ }
 }
 
-/**
- * Names the day the board is showing.
- *
- * "Today" is only printed when it is actually today. A queue position for a visit three
- * weeks out is still meaningful, but labelling it "Today" would be plainly wrong.
- */
+/** "Today" is printed only when it really is today. */
 function whenLabel() {
     if (!tracked) return '';
     return tracked.date === today() ? 'Today' : formatFullDate(tracked.date);

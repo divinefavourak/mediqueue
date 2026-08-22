@@ -16,43 +16,41 @@
 
     <div id="notice" class="notice"></div>
 
-    <section class="sheet">
+    <section class="card">
         <div class="row">
             <div>
-                <label for="from">From</label>
+                <label class="label" for="from">From</label>
                 <input type="date" id="from">
             </div>
             <div>
-                <label for="to">To</label>
+                <label class="label" for="to">To</label>
                 <input type="date" id="to">
             </div>
             <div class="shrink">
-                <button id="apply" class="tight" style="margin-top:1.5rem">Apply dates</button>
+                <button class="tight" id="apply" style="margin-top:1.7rem;min-height:48px">Apply dates</button>
             </div>
         </div>
         <p class="hint">The range reaches forward as well as back, because appointments are booked ahead.</p>
     </section>
 
-    <section class="sheet">
-        <div class="sheet-head">
-            <h2>Attendance today</h2>
-            <span class="demo-note" id="attendanceDate"></span>
-        </div>
-        <div class="grid four">
-            <div class="count"><span class="n" id="dBooked">—</span><span class="label">Booked</span></div>
-            <div class="count"><span class="n" id="dAttended">—</span><span class="label">Seen</span></div>
-            <div class="count"><span class="n" id="dSkipped">—</span><span class="label">Absent</span></div>
-            <div class="count"><span class="n" id="dRate">—</span><span class="label">Turned up</span></div>
-        </div>
-    </section>
+    <div class="card-head">
+        <h2>Attendance today</h2>
+        <span class="muted" id="attendanceDate"></span>
+    </div>
+    <div class="grid four">
+        <section class="card stat alt"><span class="label">Booked</span><div class="n" id="dBooked">—</div></section>
+        <section class="card stat"><span class="label">Seen</span><div class="n" id="dAttended">—</div></section>
+        <section class="card stat warn"><span class="label">Absent</span><div class="n" id="dSkipped">—</div></section>
+        <section class="card stat"><span class="label">Turned up</span><div class="n" id="dRate">—</div></section>
+    </div>
 
-    <section class="sheet">
+    <section class="card">
         <h2>Patients by department</h2>
         <p class="muted">Where the load falls across the range.</p>
         <div id="byDepartment" class="bars"><p class="empty">Loading…</p></div>
     </section>
 
-    <section class="sheet">
+    <section class="card">
         <h2>Busiest hours</h2>
         <p class="muted">
             The hours patients were actually seen. Empty until patients have been marked seen.
@@ -60,7 +58,7 @@
         <div id="peakPeriods" class="bars"><p class="empty">Loading…</p></div>
     </section>
 
-    <section class="sheet">
+    <section class="card">
         <h2>No-shows</h2>
         <p class="muted">
             Patients called but absent. Cancellations are excluded — those free the slot.

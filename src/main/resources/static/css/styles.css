@@ -1,538 +1,549 @@
 /*
- * MediQueue.
+ * MediQueue -- High-Contrast Modern.
  *
- * The interface is paperwork -- manila folder stock, stamp ink, ruled registers --
- * except for one thing: the board. A health centre has both a desk covered in folders
- * and an amber board on the wall, and patients already know how to read the board from
- * across a room. So everything here is quiet and papery, and the live queue position is
- * the one loud object.
+ * Built for a clinic: bright waiting halls, cheap Android screens, and staff reading the
+ * same board all day. Everything has a definite boundary. Depth comes from 2px borders
+ * and hard offset shadows rather than soft blurs, because subtle elevation disappears on
+ * a low-quality panel in daylight.
  *
- * Mobile-first: patients are on phones, standing, in a hall.
+ * Where the source design doc contradicted its own tokens (prose said navy #001F3F and
+ * pure-white surfaces, tokens said #1a1c1c and #f9f9f9), the tokens won for text and the
+ * prose won for structure: near-black body copy on an off-white ground, navy for borders,
+ * table headers and the mobile bar.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=DM+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    /* Paper */
-    --manila:   #E9DBBC;   /* folder stock, the page ground */
-    --sheet:    #F4EBD6;   /* a sheet laid on the folder */
-    --ink:      #161A16;   /* stamp ink */
-    --muted:    #55614F;   /* secondary text, passes AA on manila */
-    --rule:     #C9BB97;   /* hairlines, as on a ruled register */
+    --surface:      #F9F9F9;   /* page ground */
+    --card:         #FFFFFF;
+    --ink:          #1A1C1C;   /* body text */
+    --navy:         #0D2137;   /* borders, table headers, mobile bar */
+    --muted:        #3E4A41;   /* secondary text, passes AA on both grounds */
+    --line:         #BDCABE;
 
-    /* The board */
-    --board:    #0E1F19;
-    --well:     #081411;   /* the recess a digit sits in */
-    --amber:    #FFB627;
-    --amber-low:#8A6A22;   /* an unlit segment on the board */
+    --green:        #006B3F;   /* primary action, "your turn" */
+    --green-dark:   #00522F;
+    --green-tint:   #E8F3EC;
 
-    /* Stamps -- used only for status, never as decoration */
-    --stamp:    #A2322A;   /* cancelled, absent */
-    --sage:     #4A6B54;   /* attended */
+    --orange:       #924900;   /* booked, and waits worth noticing */
+    --orange-tint:  #FFF1E2;
 
-    --tear: 2px;           /* the radius of a printed form, not a SaaS card */
+    --red:          #BA1A1A;   /* absent, delete */
+    --red-tint:     #FFDAD6;
+
+    --r-sm: 4px;
+    --r-lg: 8px;
+
+    /* Hard shadow: low blur, high opacity, slight offset. Visible in glare. */
+    --lift:    3px 3px 0 rgba(13, 33, 55, .90);
+    --lift-lg: 5px 5px 0 rgba(13, 33, 55, .90);
+
+    --bar-h: 68px;             /* mobile action bar, reserved at the page foot */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-
 html { -webkit-text-size-adjust: 100%; }
+
+/*
+ * The hidden attribute must actually hide things.
+ *
+ * Browsers implement it as [hidden] { display: none } in the user-agent stylesheet, which
+ * loses to any author rule that sets display. A component styled display:flex therefore
+ * stays on screen with hidden set, and the JavaScript toggling it looks broken. That bit
+ * the nurse board: "Mark as seen" and "Mark as absent" kept showing with nobody in the
+ * room. One global rule so it cannot happen again.
+ */
+[hidden] { display: none !important; }
 
 body {
     margin: 0;
-    background: var(--manila);
+    background: var(--surface);
     color: var(--ink);
-    font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     font-size: 16px;
-    line-height: 1.6;
-    /* The faint tooth of folder stock. One texture, very low contrast. */
-    background-image:
-        repeating-linear-gradient(90deg, rgba(22,26,22,.014) 0 1px, transparent 1px 3px);
+    line-height: 1.55;
 }
 
-/* ------------------------------------------------------------------ type */
+/* ------------------------------------------------------------------- type */
 
-h1, h2, h3, .wordmark, .board-value {
-    font-family: Archivo, 'Arial Narrow', system-ui, sans-serif;
-    font-weight: 800;
-    letter-spacing: -.025em;
-    line-height: 1.08;
+h1, h2, h3 {
+    font-family: Montserrat, system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.18;
     margin: 0;
+    color: var(--ink);
 }
-
-h1 { font-size: clamp(1.75rem, 5.5vw, 2.6rem); }
-h2 { font-size: 1.15rem; letter-spacing: -.015em; }
+h1 { font-size: clamp(1.5rem, 4.5vw, 2rem); font-weight: 800; letter-spacing: -.02em; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.05rem; }
 
 p { margin: .5rem 0; }
+.lede { color: var(--muted); font-size: 1.05rem; max-width: 40rem; }
+.muted { color: var(--muted); font-size: .95rem; }
 
-/* Small uppercase label. Names a thing; never used to decorate. */
+/* Always-visible field label. No floating labels that vanish on focus. */
 .label {
-    font-family: 'DM Mono', ui-monospace, 'Courier New', monospace;
-    font-size: .68rem;
-    font-weight: 500;
-    letter-spacing: .17em;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .05em;
     text-transform: uppercase;
     color: var(--muted);
 }
 
-.muted { color: var(--muted); font-size: .94rem; }
+a { color: var(--green-dark); font-weight: 600; text-underline-offset: .18em; }
 
-.mono { font-family: 'DM Mono', ui-monospace, 'Courier New', monospace; }
+/* ----------------------------------------------------------------- layout */
 
-a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: .18em; }
-a:hover { text-decoration-thickness: 2px; }
-
-/* ---------------------------------------------------------------- layout */
-
-/* Marks a demonstration instance. Quiet enough not to fight the board, unmistakable
-   enough that nobody types a real patient's details into a coursework demo. */
-.demo-banner {
-    background: rgba(162, 50, 42, .12);
-    border-bottom: 1px solid var(--stamp);
-    color: #7C241E;
-    font-family: 'DM Mono', ui-monospace, monospace;
-    font-size: .68rem;
-    font-weight: 500;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    text-align: center;
-    padding: .45rem 1rem;
-}
-/* The sign-in and register pages centre their content in the viewport, so the banner
-   has to be pinned rather than sit in the flex flow. */
-body.centred .demo-banner {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 10;
-}
-
-.bar {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem 1.5rem;
-    flex-wrap: wrap;
-    padding: 1rem 1.25rem .85rem;
-    border-bottom: 1px solid var(--rule);
-}
-
-/* The mark sits before the name, not after it. An earlier version trailed a glyph on the
-   end of the word, which read as a stray icon rather than a logo. */
 .wordmark {
-    font-size: 1.2rem;
-    text-decoration: none;
-    letter-spacing: -.04em;
     display: inline-flex;
     align-items: center;
-    gap: .45rem;
-}
-/* Optical alignment: the tile's cap height sits slightly above the wordmark's, so a
-   nudge down centres it against the letterforms rather than against the line box. */
-.wordmark img { display: block; transform: translateY(.5px); }
-
-.bar nav { display: flex; gap: 1.1rem; align-items: baseline; flex-wrap: wrap; }
-.bar nav a {
-    font-size: .88rem;
-    font-weight: 500;
+    gap: .5rem;
+    font-family: Montserrat, sans-serif;
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -.02em;
+    color: var(--green);
     text-decoration: none;
-    padding-bottom: 2px;
-    border-bottom: 1.5px solid transparent;
 }
-.bar nav a:hover { border-bottom-color: var(--ink); }
-.bar .who { font-size: .82rem; color: var(--muted); }
+.wordmark img { display: block; }
 
-main { max-width: 62rem; margin: 0 auto; padding: 1.75rem 1.25rem 4rem; }
+/* Top bar, used on public pages and on patient screens. */
+.bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .85rem 1rem;
+    background: var(--card);
+    border-bottom: 2px solid var(--navy);
+}
+.bar nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.bar nav a { font-size: .92rem; text-decoration: none; color: var(--navy); }
+.bar nav a:hover { text-decoration: underline; }
+.bar .who { font-size: .85rem; color: var(--muted); font-weight: 500; }
+
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem calc(1.5rem + var(--bar-h));
+}
+/* Staff and admin screens have a sidebar instead, and no mobile action bar. */
+.has-rail main { padding-bottom: 2.5rem; }
 
 .centred {
     display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; padding: 1.5rem 1.25rem;
+    min-height: 100vh; padding: 1.5rem 1rem;
 }
-.centred main { width: 100%; max-width: 24rem; padding: 0; }
+.centred main { width: 100%; max-width: 26rem; padding: 0; }
 
-.sheet {
-    background: var(--sheet);
-    border: 1px solid var(--rule);
-    border-radius: var(--tear);
-    padding: 1.35rem;
-    margin-bottom: 1.25rem;
+.card {
+    background: var(--card);
+    border: 2px solid var(--navy);
+    border-radius: var(--r-lg);
+    box-shadow: var(--lift);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
 }
 
-.sheet-head {
+.card-head {
     display: flex; align-items: baseline; justify-content: space-between;
     gap: 1rem; flex-wrap: wrap; margin-bottom: .9rem;
 }
 
 .grid { display: grid; gap: 1.25rem; }
-@media (min-width: 620px) { .grid.two   { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 800px) { .grid.three { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 800px) { .grid.four  { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 640px) { .grid.two   { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .grid.three { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 900px) { .grid.four  { grid-template-columns: repeat(4, 1fr); } }
 
-/* ===================================================================
-   THE BOARD
-   The one loud object. Everything else on the page stays quiet.
-   =================================================================== */
+/* ------------------------------------------------------- staff side rail */
 
-.board {
-    background: var(--board);
-    border-radius: var(--tear);
-    padding: 1.5rem 1.35rem 1.35rem;
-    margin-bottom: 1.25rem;
-    color: var(--amber);
-    /* A board is a discrete object mounted on a wall, not a full-bleed banner. Left it
-       stretched and the content hugged one third of a very empty panel. */
-    max-width: 38rem;
-    /* A faint scanline, as on an LED matrix. Barely there. */
-    background-image:
-        repeating-linear-gradient(180deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px);
+.shell { display: block; }
+
+.rail {
+    background: var(--card);
+    border-bottom: 2px solid var(--navy);
+    padding: 1rem;
 }
-
-.board-head {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: .75rem; flex-wrap: wrap;
-    padding-bottom: .9rem;
-    border-bottom: 1px solid rgba(255,182,39,.22);
-}
-.board-head .label { color: var(--amber-low); }
-.board-where {
-    font-family: Archivo, sans-serif; font-weight: 700;
-    font-size: 1rem; letter-spacing: .01em; color: var(--amber);
-}
-
-/* Left-aligned, like every real departure and now-serving board. Centring the digits
-   in halves while the stub strip ran along the left made the panel read as two
-   unrelated pieces. */
-.board-readout {
+.rail .org { font-size: .82rem; color: var(--muted); margin: .15rem 0 1rem; }
+.rail-nav { display: flex; flex-wrap: wrap; gap: .4rem; }
+.rail-nav a {
+    display: block;
+    padding: .6rem .8rem;
+    font-size: .92rem;
+    font-weight: 600;
+    color: var(--navy);
+    text-decoration: none;
+    border: 2px solid transparent;
+    border-radius: var(--r-sm);
+    min-height: 44px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 1.25rem 2.75rem;
-    padding: 1.15rem 0 1rem;
+    align-items: center;
 }
-.board-cell { text-align: left; }
-.board-cell .label { color: var(--amber-low); display: block; margin-bottom: .45rem; }
+.rail-nav a:hover { background: var(--green-tint); }
+.rail-nav a[aria-current="page"] {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--navy);
+}
+.rail-foot { margin-top: 1rem; }
 
-/* --- split-flap digit ------------------------------------------------ */
+@media (min-width: 900px) {
+    .shell { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+    .rail {
+        border-bottom: 0;
+        border-right: 2px solid var(--navy);
+        padding: 1.5rem 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .rail-nav { flex-direction: column; gap: .3rem; }
+    .rail-foot { margin-top: auto; }
+    .shell main { padding: 1.75rem 1.75rem 3rem; }
+}
 
-.flip {
-    display: inline-block;
-    position: relative;
-    min-width: 2.6ch;
-    padding: .3rem .5rem .35rem;
-    background: var(--well);
-    border-radius: var(--tear);
-    font-family: 'DM Mono', ui-monospace, monospace;
-    font-size: clamp(2.6rem, 12vw, 4rem);
-    font-weight: 500;
+/* ------------------------------------------------- the live queue status */
+
+/*
+ * Position is the largest thing on the screen, not the ticket number.
+ *
+ * The source design gave 72px to the ticket and about 28px to the position. That is
+ * backwards: the ticket never changes, while the position is the number the patient is
+ * actually watching. The live value dominates the static one.
+ */
+.status {
+    text-align: center;
+    /* Capped rather than full width: stretched across a desktop the ticket and
+       now-serving values drifted to opposite edges and stopped reading as a pair. */
+    max-width: 34rem;
+}
+
+.status .position-label { display: block; margin-bottom: .1rem; }
+
+.position {
+    font-family: Montserrat, sans-serif;
+    font-weight: 800;
+    font-size: clamp(3.5rem, 18vw, 5.5rem);
     line-height: 1;
-    color: var(--amber);
+    letter-spacing: -.04em;
+    color: var(--green);
+}
+.position .ord { font-size: .4em; letter-spacing: 0; margin-left: .06em; }
+.status.is-next .position { color: var(--orange); }
+
+.status-say {
+    font-family: Montserrat, sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin: .35rem 0 0;
+}
+
+.status-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    margin-top: 1.15rem;
+    padding-top: 1.15rem;
+    border-top: 2px solid var(--line);
+}
+.status-split .v {
+    font-family: Montserrat, sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    line-height: 1.1;
     font-variant-numeric: tabular-nums;
 }
-/* The hinge line that makes it read as a flap rather than a number. */
-.flip::after {
-    content: '';
-    position: absolute; left: 0; right: 0; top: 50%;
-    height: 1px;
-    background: rgba(0,0,0,.55);
+
+/* Wait estimate. Hidden entirely when there is not enough data to be honest. */
+.estimate {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-top: 1.1rem;
+    padding: .55rem 1rem;
+    background: var(--navy);
+    color: #fff;
+    border-radius: var(--r-sm);
+    font-weight: 700;
+    font-size: .95rem;
 }
-.flip-face { display: block; transform-origin: center; backface-visibility: hidden; }
+.estimate .hedge { font-weight: 400; opacity: .75; font-size: .82rem; }
 
-.flip.is-turning .flip-face { animation: flap 260ms ease-in; }
-@keyframes flap {
-    0%   { transform: rotateX(0deg);   opacity: 1; }
-    49%  { transform: rotateX(-88deg); opacity: .25; }
-    51%  { transform: rotateX(88deg);  opacity: .25; }
-    100% { transform: rotateX(0deg);   opacity: 1; }
-}
+/* Queue as a row of marks, so "3 ahead" can be seen without being read. */
+.pips { display: flex; gap: 5px; justify-content: center; margin: 1.1rem 0 .3rem; flex-wrap: wrap; }
+.pip { width: 14px; height: 34px; border-radius: 2px; background: var(--line); }
+.pip.ahead { background: var(--navy); }
+.pip.mine  { background: var(--green); box-shadow: 0 0 0 3px var(--green-tint); }
+.status.is-next .pip.mine { background: var(--orange); box-shadow: 0 0 0 3px var(--orange-tint); }
 
-.flip.dim { color: var(--amber-low); }
-.flip.dim .flip-face { font-size: .55em; }
+/* ---------------------------------------------------- now serving (staff) */
 
-/* --- the stub strip: the signature ------------------------------------
-   One stub per waiting patient. Struck through once seen, amber for yours.
-   You read your place without reading a number.                        */
-
-.stubs-wrap { padding-top: .35rem; }
-
-.stubs {
+.serving {
     display: flex;
-    gap: 3px;
-    /* The strip is what patients read first, so it gets real height. */
-    height: 3rem;
-    align-items: stretch;
-    /* Left-aligned and capped, so it reads as tickets torn off a roll rather than as a
-       progress bar stretched across the panel. */
-    justify-content: flex-start;
-    margin: .55rem 0 .75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    flex-wrap: wrap;
 }
-
-.stub {
-    /* Stub-shaped and countable: never wider than a ticket, free to shrink when the
-       queue is long. */
-    flex: 0 1 22px;
-    min-width: 3px;
-    border-radius: 1px;
-    /* Perforation down each stub, as on a ticket roll. */
-    background-image:
-        repeating-linear-gradient(180deg, rgba(0,0,0,.34) 0 2px, transparent 2px 5px);
-    background-color: var(--amber-low);
-    opacity: .5;
-}
-.stub.ahead { background-color: var(--amber-low); opacity: .85; }
-.stub.mine  {
-    background-color: var(--amber);
-    opacity: 1;
-    box-shadow: 0 0 0 2px var(--board), 0 0 14px rgba(255,182,39,.55);
-    position: relative;
-    z-index: 1;
-}
-.stub.behind { background-color: var(--amber-low); opacity: .3; }
-
-.board-line {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: 1rem; flex-wrap: wrap;
-    padding-top: .9rem;
-    border-top: 1px solid rgba(255,182,39,.22);
-}
-.board-say {
-    font-family: Archivo, sans-serif; font-weight: 700;
-    font-size: 1.02rem; letter-spacing: -.01em; color: var(--amber);
-}
-.board-stamp-time { font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--amber-low); }
-
-/* Finished appointments get a stamp instead of a position. */
-.board-verdict {
-    text-align: center;
-    padding: 1.5rem 0 1.1rem;
-}
-.board-verdict .verdict {
-    display: inline-block;
-    font-family: Archivo, sans-serif;
+.serving-no {
+    font-family: Montserrat, sans-serif;
     font-weight: 800;
-    font-size: clamp(1.6rem, 8vw, 2.6rem);
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    padding: .4rem 1.1rem;
-    border: 3px solid currentColor;
-    border-radius: var(--tear);
-    transform: rotate(-3.5deg);
-    color: var(--amber);
+    font-size: clamp(2.5rem, 8vw, 3.75rem);
+    line-height: 1;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
 }
-.board-verdict .verdict.bad { color: #E86A5E; }
+.serving-who { font-size: 1.15rem; font-weight: 600; }
+.serving-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+.serving.idle .serving-no { color: var(--muted); }
 
-/* =================================================================== */
+/* ------------------------------------------------------------------ chips */
 
-/* ---------------------------------------------------------------- forms */
-
-label {
-    display: block;
-    font-family: 'DM Mono', monospace;
-    font-size: .68rem; font-weight: 500;
-    letter-spacing: .17em; text-transform: uppercase;
-    color: var(--muted);
-    margin: 1rem 0 .3rem;
+.chips { display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0 0; }
+.chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .3rem .7rem;
+    font-size: .85rem; font-weight: 600;
+    border: 2px solid var(--navy);
+    border-radius: 999px;
+    background: var(--card);
 }
+.chip.on { background: var(--green); color: #fff; }
+
+/* ------------------------------------------------------------------ forms */
+
+label { display: block; margin: 1rem 0 .35rem; }
+label.label { margin-bottom: .35rem; }
 
 input, select {
     width: 100%;
-    font: 400 1rem/1.4 'Public Sans', system-ui, sans-serif;
-    padding: .62rem .7rem;
+    font: 400 1rem/1.4 Inter, system-ui, sans-serif;
+    min-height: 48px;                      /* touch target */
+    padding: .6rem .75rem;
     color: var(--ink);
-    background: #FBF6E9;
-    border: 1px solid var(--rule);
-    border-radius: var(--tear);
+    background: var(--card);
+    border: 2px solid var(--navy);
+    border-radius: var(--r-sm);
 }
-input:focus-visible, select:focus-visible,
+input:focus-visible, select:focus-visible {
+    outline: none;
+    border-width: 3px;
+    border-color: var(--green);
+}
 button:focus-visible, a:focus-visible {
-    outline: 2px solid var(--ink);
+    outline: 3px solid var(--green);
     outline-offset: 2px;
 }
-input::placeholder { color: #9A9482; }
+input::placeholder { color: #6E7A70; }
+.hint { font-size: .85rem; color: var(--muted); margin: .4rem 0 0; }
 
-.hint { font-size: .8rem; color: var(--muted); margin: .35rem 0 0; }
-
-/* Buttons speak as actions: the word on the button is the word in the toast. */
 button, .btn {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
     width: 100%;
-    font: 600 .95rem/1.3 'Public Sans', system-ui, sans-serif;
+    min-height: 48px;
+    padding: .7rem 1.1rem;
+    margin-top: 1.25rem;
+    font: 700 .98rem/1.2 Inter, system-ui, sans-serif;
     text-align: center;
     text-decoration: none;
-    padding: .68rem 1rem;
-    margin-top: 1.15rem;
-    color: var(--sheet);
-    background: var(--ink);
-    border: 1px solid var(--ink);
-    border-radius: var(--tear);
+    color: #fff;
+    background: var(--green);
+    border: 2px solid var(--navy);
+    border-radius: var(--r-sm);
+    box-shadow: var(--lift);
     cursor: pointer;
 }
-button:hover, .btn:hover { background: #2C332B; }
-button:disabled { background: var(--muted); border-color: var(--muted); cursor: not-allowed; }
+button:hover, .btn:hover { background: var(--green-dark); }
+button:active, .btn:active { box-shadow: 1px 1px 0 rgba(13,33,55,.9); transform: translate(2px, 2px); }
+button:disabled { background: var(--muted); cursor: not-allowed; box-shadow: none; transform: none; }
 
-.btn-quiet, button.quiet {
-    color: var(--ink);
-    background: transparent;
+.btn-2, button.secondary { background: var(--card); color: var(--navy); }
+.btn-2:hover, button.secondary:hover { background: var(--green-tint); }
+
+button.critical { background: var(--red); }
+button.critical:hover { background: #93000A; }
+
+button.tight, .btn.tight {
+    width: auto; margin: 0; min-height: 40px;
+    padding: .4rem .8rem; font-size: .88rem;
+    box-shadow: 2px 2px 0 rgba(13,33,55,.9);
 }
-.btn-quiet:hover, button.quiet:hover { background: rgba(22,26,22,.07); }
 
-button.tight, .btn.tight { width: auto; margin: 0; padding: .38rem .8rem; font-size: .84rem; }
-
-/* A pair of choices sits side by side at its natural width; only a form's single
-   submit button spans the column. */
 .actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.5rem; }
-.actions .btn { width: auto; margin: 0; padding: .7rem 1.4rem; }
-
-button.warn { color: var(--stamp); background: transparent; border-color: var(--stamp); }
-button.warn:hover { background: rgba(162,50,42,.09); }
+.actions .btn, .actions button { width: auto; margin: 0; }
 
 .row { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; }
-.row > * { flex: 1 1 9rem; }
+.row > * { flex: 1 1 10rem; }
 .row label { margin-top: 0; }
 .row .shrink { flex: 0 0 auto; }
 
-/* -------------------------------------------------------------- notices */
+/* ---------------------------------------------------------------- notices */
 
 .notice {
-    font-size: .92rem;
-    padding: .65rem .8rem;
-    margin: .9rem 0;
-    border-left: 3px solid var(--ink);
-    background: rgba(22,26,22,.05);
-    border-radius: 0 var(--tear) var(--tear) 0;
+    font-size: .95rem;
+    font-weight: 500;
+    padding: .75rem .9rem;
+    margin: 1rem 0;
+    border: 2px solid var(--navy);
+    border-left-width: 8px;
+    border-radius: var(--r-sm);
+    background: var(--card);
 }
-.notice.error   { border-left-color: var(--stamp); background: rgba(162,50,42,.09); color: #7C241E; }
-.notice.success { border-left-color: var(--sage);  background: rgba(74,107,84,.11); color: #2F4A37; }
+.notice.error   { border-left-color: var(--red);   background: var(--red-tint); }
+.notice.success { border-left-color: var(--green); background: var(--green-tint); }
 .notice:empty   { display: none; margin: 0; padding: 0; border: 0; }
 
-/* --------------------------------------------------------------- ledger */
+/* ----------------------------------------------------------------- tables */
 
-.ledger-wrap { overflow-x: auto; margin: 0 -1.35rem; padding: 0 1.35rem; }
-
-table { width: 100%; border-collapse: collapse; min-width: 34rem; }
-
-th {
-    font-family: 'DM Mono', monospace;
-    font-size: .66rem; font-weight: 500;
-    letter-spacing: .16em; text-transform: uppercase;
-    color: var(--muted);
-    text-align: left;
-    padding: 0 .6rem .5rem 0;
-    border-bottom: 1px solid var(--ink);
+.table-wrap {
+    overflow-x: auto;
+    border: 2px solid var(--navy);
+    border-radius: var(--r-lg);
+    box-shadow: var(--lift);
+    background: var(--card);
 }
-td {
-    padding: .72rem .6rem .72rem 0;
-    border-bottom: 1px solid var(--rule);
-    font-size: .94rem;
+table { width: 100%; border-collapse: collapse; min-width: 40rem; }
+
+thead th {
+    background: var(--navy);
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: .8rem .9rem;
+}
+tbody td {
+    padding: .8rem .9rem;
+    border-top: 1px solid var(--line);
+    font-size: .95rem;
     vertical-align: middle;
 }
-tbody tr:hover td { background: rgba(22,26,22,.035); }
+/* A faint tint guides the eye across wide rows without lowering contrast. */
+tbody tr:nth-child(even) td { background: rgba(0, 107, 63, .035); }
+tbody tr:hover td { background: var(--green-tint); }
 
-/* Ticket numbers are a real sequence, so they carry the monospace treatment. */
 .ticket-no {
-    font-family: 'DM Mono', monospace;
-    font-weight: 500;
-    font-size: 1.02rem;
+    font-family: Montserrat, sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
     font-variant-numeric: tabular-nums;
 }
+.cell-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+.empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); }
 
-.empty { padding: 2rem .5rem; text-align: center; color: var(--muted); font-size: .94rem; }
+/* ----------------------------------------------------------------- badges */
 
-/* --------------------------------------------------------------- stamps */
-
-.stamp {
+/*
+ * Every badge pairs its colour with a distinct border treatment and its own word, so
+ * status never depends on colour alone.
+ */
+.badge {
     display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: .64rem; font-weight: 500;
-    letter-spacing: .13em; text-transform: uppercase;
-    padding: .16rem .42rem;
-    border: 1px solid currentColor;
-    border-radius: var(--tear);
+    padding: .25rem .7rem;
+    font-size: .8rem;
+    font-weight: 700;
+    border: 2px solid;
+    border-radius: 999px;
     white-space: nowrap;
 }
-.stamp.BOOKED, .stamp.WAITING     { color: var(--muted); }
-.stamp.IN_PROGRESS                { color: #8A5A12; background: rgba(255,182,39,.2); }
-.stamp.ATTENDED, .stamp.OPEN      { color: var(--sage); }
-.stamp.SKIPPED, .stamp.CANCELLED,
-.stamp.CLOSED                     { color: var(--stamp); }
+.badge.BOOKED       { color: var(--orange); border-color: var(--orange); background: var(--card); }
+.badge.WAITING      { color: var(--navy);   border-color: var(--navy);   background: var(--card); }
+.badge.IN_PROGRESS  { color: #fff;          border-color: var(--navy);   background: var(--green); }
+.badge.ATTENDED     { color: var(--green-dark); border-color: var(--green); background: var(--green-tint); }
+.badge.SKIPPED,
+.badge.CANCELLED    { color: var(--red);    border-color: var(--red);    background: var(--red-tint); }
+.badge.OPEN         { color: var(--green-dark); border-color: var(--green); background: var(--green-tint); }
+.badge.CLOSED       { color: var(--muted);  border-color: var(--muted);  background: var(--card); }
 
-/* --------------------------------------------------------------- counts */
+/* ------------------------------------------------------------ stat tiles */
 
-.count { padding: .2rem 0 .1rem; }
-.count .n {
-    font-family: 'DM Mono', monospace;
-    font-size: 2rem; font-weight: 500; line-height: 1.1;
+.stat { text-align: left; }
+.stat .n {
+    font-family: Montserrat, sans-serif;
+    font-weight: 800;
+    font-size: 2.5rem;
+    line-height: 1.05;
+    color: var(--green);
     font-variant-numeric: tabular-nums;
 }
-.count .label { display: block; margin-top: .1rem; }
+.stat.alt .n { color: var(--navy); }
+.stat.warn .n { color: var(--orange); }
 
-/* ------------------------------------------------------- ticket receipt */
+/* ------------------------------------------------------------ bar charts */
 
-.receipt {
-    position: relative;
-    background: var(--sheet);
-    border: 1px solid var(--rule);
-    border-radius: var(--tear);
-    padding: 1.6rem 1.35rem;
-    text-align: center;
-    margin-bottom: 1.25rem;
-}
-/* The notches a ticket gets when it is torn from the roll. */
-.receipt::before, .receipt::after {
-    content: '';
-    position: absolute; top: 50%;
-    width: 18px; height: 18px;
-    background: var(--manila);
-    border: 1px solid var(--rule);
-    border-radius: 50%;
-    transform: translateY(-50%);
-}
-.receipt::before { left: -10px;  clip-path: inset(0 0 0 50%); }
-.receipt::after  { right: -10px; clip-path: inset(0 50% 0 0); }
-
-.receipt-no {
-    font-family: 'DM Mono', monospace;
-    font-size: clamp(2.6rem, 13vw, 3.8rem);
-    font-weight: 500; line-height: 1;
-    font-variant-numeric: tabular-nums;
-    margin: .45rem 0 .3rem;
-}
-.perf {
-    border: 0; border-top: 2px dashed var(--rule);
-    margin: 1.1rem 0;
-}
-
-/* ----------------------------------------------------------- bar charts */
-
-.bars { margin-top: .4rem; }
+.bars { margin-top: .5rem; }
 .bar-row {
     display: grid;
-    grid-template-columns: minmax(5.5rem, 9rem) 1fr 2.6rem;
-    gap: .7rem; align-items: center;
-    padding: .3rem 0;
+    grid-template-columns: minmax(6rem, 10rem) 1fr 3rem;
+    gap: .75rem; align-items: center;
+    padding: .35rem 0;
 }
-.bar-row .k { font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar-row .track { height: 1.15rem; background: rgba(22,26,22,.07); border-radius: 1px; }
-.bar-row .fill  { height: 100%; background: var(--ink); border-radius: 1px; min-width: 2px; }
-.bar-row .v {
-    font-family: 'DM Mono', monospace; font-size: .88rem; font-weight: 500;
-    text-align: right; font-variant-numeric: tabular-nums;
+.bar-row .k { font-size: .9rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-row .track { height: 1.4rem; background: var(--surface); border: 2px solid var(--navy); border-radius: var(--r-sm); }
+/* One colour: these bars are one series, so varying the hue would encode nothing. */
+.bar-row .fill { height: 100%; background: var(--green); min-width: 2px; }
+.bar-row .v { font-family: Montserrat, sans-serif; font-weight: 700; font-size: .95rem; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------- mobile action bar */
+
+/*
+ * Patient screens only. Primary navigation within thumb reach, which matters when
+ * somebody is standing up holding a phone one-handed.
+ */
+.tabbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 20;
+    display: flex;
+    background: var(--navy);
+    border-top: 2px solid var(--navy);
+    padding-bottom: env(safe-area-inset-bottom);
 }
-
-/* ------------------------------------------------------------ home page */
-
-.lede { font-size: 1.06rem; max-width: 34rem; color: var(--muted); }
-
-.demo-note {
-    font-family: 'DM Mono', monospace;
+.tabbar a {
+    flex: 1;
+    min-height: var(--bar-h);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .18rem;
+    padding: .5rem .25rem;
+    color: #fff;
     font-size: .78rem;
-    color: var(--muted);
+    font-weight: 600;
+    text-decoration: none;
 }
+.tabbar a[aria-current="page"] { background: var(--green); }
+.tabbar svg { width: 22px; height: 22px; display: block; }
+
+/* ------------------------------------------------------------- demo band */
+
+.demo-banner {
+    background: var(--red-tint);
+    border-bottom: 2px solid var(--red);
+    color: #93000A;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: .5rem 1rem;
+}
+body.centred .demo-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 30; }
 
 /* --------------------------------------------------------- preferences */
 
 @media (prefers-reduced-motion: reduce) {
-    .flip.is-turning .flip-face { animation: none; }
-    * { transition: none !important; }
+    * { transition: none !important; animation: none !important; }
+    button:active, .btn:active { transform: none; }
 }
 
-@media (min-width: 620px) {
-    main { padding: 2.25rem 1.5rem 4rem; }
-    .board { padding: 1.75rem 1.6rem 1.5rem; }
+@media (min-width: 640px) {
+    main { padding: 2rem 1.5rem calc(2rem + var(--bar-h)); }
+    .card { padding: 1.5rem; }
 }

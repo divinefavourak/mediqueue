@@ -24,11 +24,48 @@ public record QueuePosition(
         /** Everyone still waiting in this department today, for context. */
         int totalWaiting,
         /** Ticket currently being seen, or 0 when nobody is in progress. */
-        int nowServing) {
+        int nowServing,
+        /**
+         * Roughly how many more minutes, or null when the day has not produced enough
+         * data to say anything honest.
+         *
+         * <p>Null is a real answer here, not a missing value. Project.md 4.3 defers wait
+         * estimates until there is data to base them on, and a confident number invented
+         * from three data points is worse than no number: a patient who is told twenty
+         * minutes will step out, and miss being called.
+         */
+        Integer estimatedMinutes) {
 
     /** True when this patient is at the front of the line. */
     public boolean isNext() {
         return position == 1;
+    }
+
+    /** True when there is enough data today to offer a wait estimate. */
+    public boolean hasEstimate() {
+        return estimatedMinutes != null;
+    }
+
+    /**
+     * The wait estimate as a phrase, deliberately rounded and hedged.
+     *
+     * <p>Rounded to five minutes and always prefixed "about", because the underlying
+     * figure is a median of a handful of gaps. Printing "23 minutes" would imply a
+     * precision the data does not have.
+     */
+    public String estimateText() {
+        if (!hasEstimate()) {
+            return "";
+        }
+        int minutes = estimatedMinutes;
+        if (minutes < 5) {
+            return "About 5 minutes";
+        }
+        if (minutes >= 120) {
+            return "Over 2 hours";
+        }
+        int rounded = Math.round(minutes / 5f) * 5;
+        return "About " + rounded + " minutes";
     }
 
     /** True when the appointment has left the queue (attended, skipped or cancelled). */
