@@ -63,13 +63,40 @@ async function requireUser(allowedRoles) {
     return user;
 }
 
+/**
+ * Marks a demonstration instance on every page.
+ *
+ * <p>The banner is the reason MediQueue no longer refuses to run demo accounts over
+ * HTTPS. A public demonstration is a reasonable thing to want; the danger was never that
+ * the accounts existed, it was that somebody could mistake the demo for a working clinic
+ * system and type in a real patient's details. Saying so on every page fixes that, and
+ * unlike a startup check it stays visible.
+ *
+ * <p>Runs on every page including sign-in, which is why /api/meta needs no session.
+ */
+async function markDemoInstance() {
+    try {
+        const meta = await api('/api/meta');
+        if (!meta.demoMode || document.querySelector('.demo-banner')) return;
+
+        document.body.insertAdjacentHTML('afterbegin',
+            '<div class="demo-banner" role="status">' +
+            'Demonstration system — do not enter real patient information' +
+            '</div>');
+    } catch {
+        // An instance that cannot answer is not one we can label. Never block the page.
+    }
+}
+
+document.addEventListener('DOMContentLoaded', markDemoInstance);
+
 /** Renders the shared header. */
 function renderTopbar(user, links = []) {
     const nav = links
         .map(link => `<a href="${link.href}">${escapeHtml(link.label)}</a>`)
         .join('');
 
-    document.body.insertAdjacentHTML('afterbegin', `
+    const header = `
         <header class="bar">
             <a class="wordmark" href="${user ? user.landingPage : '/'}">MediQueue</a>
             <nav>
@@ -78,7 +105,16 @@ function renderTopbar(user, links = []) {
                 ${user ? '<a href="#" id="signOut">Sign out</a>' : ''}
             </nav>
         </header>
-    `);
+    `;
+
+    // The banner and this header race: both are inserted from async work. Whichever
+    // lands second must not end up on top, so each defers to the other explicitly.
+    const banner = document.querySelector('.demo-banner');
+    if (banner) {
+        banner.insertAdjacentHTML('afterend', header);
+    } else {
+        document.body.insertAdjacentHTML('afterbegin', header);
+    }
 
     const signOut = document.getElementById('signOut');
     if (signOut) {

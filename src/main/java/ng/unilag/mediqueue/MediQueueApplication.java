@@ -85,16 +85,18 @@ public final class MediQueueApplication {
                 new DemoDataSeeder(registry.authService(), registry.departmentService());
 
         if (config.seedDemoAccounts()) {
-            // Fail closed. Secure cookies mean this instance is served over HTTPS, which
-            // means it is reachable by people who are not the developer -- and the demo
-            // administrator password is printed in the README. Refusing to start is a
-            // nuisance; starting would publish an admin login for patient records.
-            if (config.secureCookies()) {
-                throw new MediQueueException(
-                        "Refusing to start: demo accounts are enabled on an HTTPS deployment. "
-                        + "Their password is published in the README. Set MEDIQUEUE_DEMO_SEED=false "
-                        + "and use MEDIQUEUE_ADMIN_EMAIL / MEDIQUEUE_ADMIN_PASSWORD instead.");
-            }
+            // A public demonstration is a legitimate thing to want, so this no longer
+            // refuses to start.
+            //
+            // An earlier version rejected demo accounts on any HTTPS deployment. That was
+            // the wrong control twice over: it could not tell a coursework demo from a
+            // real clinic, and the easiest way around it was to switch OFF secure cookies
+            // -- so the guard nudged people toward sending session tokens over plain HTTP.
+            //
+            // The real hazard is somebody mistaking a demonstration for a working clinic
+            // system and entering real patient details. A banner on every page prevents
+            // that; refusing to boot does not. See /api/meta and the demo banner in
+            // api.js.
             seeder.seedDemoAccounts();
             return;
         }

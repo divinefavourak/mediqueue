@@ -5,6 +5,7 @@ import ng.unilag.mediqueue.config.ServiceRegistry;
 import ng.unilag.mediqueue.web.handler.AppointmentHandler;
 import ng.unilag.mediqueue.web.handler.AuthHandler;
 import ng.unilag.mediqueue.web.handler.DepartmentHandler;
+import ng.unilag.mediqueue.web.handler.MetaHandler;
 import ng.unilag.mediqueue.web.handler.QueueHandler;
 import ng.unilag.mediqueue.web.handler.ReportHandler;
 import ng.unilag.mediqueue.web.handler.StaticFileHandler;
@@ -58,6 +59,8 @@ public final class WebServer {
         server.createContext("/api/departments",
                 new DepartmentHandler(sessions, registry.departmentService()));
         server.createContext("/api/reports", new ReportHandler(sessions, registry.reportService()));
+        server.createContext("/api/meta",
+                new MetaHandler(sessions, registry.config().seedDemoAccounts()));
         server.createContext("/api/users", new UserHandler(sessions, registry.authService()));
 
         // --- Everything else is a page, stylesheet or script.

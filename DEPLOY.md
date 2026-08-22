@@ -25,7 +25,21 @@ holds development defaults only and never contains a real password.
 | `PORT` | Port to listen on. Platforms set this for you; do not hardcode it. |
 | `MEDIQUEUE_SECURITY_COOKIE_SECURE` | `true` on anything served over HTTPS. |
 | `MEDIQUEUE_ADMIN_EMAIL` / `_ADMIN_PASSWORD` | Creates the first administrator, once, on an empty database. |
-| `MEDIQUEUE_DEMO_SEED` | Leave unset. `true` creates the three README accounts. |
+| `MEDIQUEUE_DEMO_SEED` | `true` for a demonstration: creates the three README accounts **and shows a "Demonstration system" banner on every page**. Leave unset for a real health centre. |
+
+### Demonstration or real clinic?
+
+Pick one. They are different deployments, not different settings.
+
+**Demonstration** — a marker or classmate should be able to sign in and try all three
+roles. Set `MEDIQUEUE_DEMO_SEED=true`. The three README accounts are created and every
+page carries a banner saying the system is a demonstration. That banner is the point:
+the accounts sharing a published password is fine on throwaway data, and the banner is
+what stops anyone entering a real patient's details.
+
+**Real health centre** — leave `MEDIQUEUE_DEMO_SEED` unset and give
+`MEDIQUEUE_ADMIN_EMAIL` and `MEDIQUEUE_ADMIN_PASSWORD` instead. One administrator, a
+password only you know, no banner, no shared logins.
 
 Any key in `config.properties` can be set this way: lowercase and dots become uppercase
 and underscores, with a `MEDIQUEUE_` prefix. `security.pbkdf2.iterations` →
@@ -38,7 +52,10 @@ and underscores, with a `MEDIQUEUE_` prefix. `security.pbkdf2.iterations` →
 The quickest way to get a URL someone else can open. Render is used here; Railway and Fly
 are near-identical.
 
-1. Push this folder to GitHub.
+1. Push this folder to GitHub. **Confirm `lib/postgresql-42.7.4.jar` is committed** —
+   `git ls-files lib/` should list it. There is no build tool to fetch the driver, so it
+   is a checked-in input; without it the image build fails at `COPY lib/ lib/` with
+   `"/lib": not found`.
 2. On Render: **New → Postgres**. Create it, then copy the **Internal Database URL**.
 3. **New → Web Service**, point it at the repository. Render detects the `Dockerfile`.
 4. Add environment variables:
@@ -156,9 +173,9 @@ after logout, use a systemd unit or Windows Task Scheduler.
 
 ## Before you go live
 
-- [ ] **`MEDIQUEUE_DEMO_SEED` is unset or false.** Those three accounts share a password
-      printed in the README. The app refuses to start if they are enabled alongside HTTPS,
-      but check anyway.
+- [ ] **`MEDIQUEUE_DEMO_SEED` is unset.** Those three accounts share a password printed in
+      the README. If it is on, every page says "Demonstration system" — if you see that
+      banner on a real clinic deployment, stop and turn it off.
 - [ ] **Administrator password changed** after first sign-in.
 - [ ] **`MEDIQUEUE_SECURITY_COOKIE_SECURE=true`** anywhere TLS is in use. Without it the
       session cookie can travel over plain HTTP.

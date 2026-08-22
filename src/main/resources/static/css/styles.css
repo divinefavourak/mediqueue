@@ -83,6 +83,28 @@ a:hover { text-decoration-thickness: 2px; }
 
 /* ---------------------------------------------------------------- layout */
 
+/* Marks a demonstration instance. Quiet enough not to fight the board, unmistakable
+   enough that nobody types a real patient's details into a coursework demo. */
+.demo-banner {
+    background: rgba(162, 50, 42, .12);
+    border-bottom: 1px solid var(--stamp);
+    color: #7C241E;
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: .68rem;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: .45rem 1rem;
+}
+/* The sign-in and register pages centre their content in the viewport, so the banner
+   has to be pinned rather than sit in the flex flow. */
+body.centred .demo-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+}
+
 .bar {
     display: flex;
     align-items: baseline;
