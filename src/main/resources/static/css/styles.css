@@ -1,0 +1,506 @@
+/*
+ * MediQueue.
+ *
+ * The interface is paperwork -- manila folder stock, stamp ink, ruled registers --
+ * except for one thing: the board. A health centre has both a desk covered in folders
+ * and an amber board on the wall, and patients already know how to read the board from
+ * across a room. So everything here is quiet and papery, and the live queue position is
+ * the one loud object.
+ *
+ * Mobile-first: patients are on phones, standing, in a hall.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=DM+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap');
+
+:root {
+    /* Paper */
+    --manila:   #E9DBBC;   /* folder stock, the page ground */
+    --sheet:    #F4EBD6;   /* a sheet laid on the folder */
+    --ink:      #161A16;   /* stamp ink */
+    --muted:    #55614F;   /* secondary text, passes AA on manila */
+    --rule:     #C9BB97;   /* hairlines, as on a ruled register */
+
+    /* The board */
+    --board:    #0E1F19;
+    --well:     #081411;   /* the recess a digit sits in */
+    --amber:    #FFB627;
+    --amber-low:#8A6A22;   /* an unlit segment on the board */
+
+    /* Stamps -- used only for status, never as decoration */
+    --stamp:    #A2322A;   /* cancelled, absent */
+    --sage:     #4A6B54;   /* attended */
+
+    --tear: 2px;           /* the radius of a printed form, not a SaaS card */
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    background: var(--manila);
+    color: var(--ink);
+    font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    /* The faint tooth of folder stock. One texture, very low contrast. */
+    background-image:
+        repeating-linear-gradient(90deg, rgba(22,26,22,.014) 0 1px, transparent 1px 3px);
+}
+
+/* ------------------------------------------------------------------ type */
+
+h1, h2, h3, .wordmark, .board-value {
+    font-family: Archivo, 'Arial Narrow', system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -.025em;
+    line-height: 1.08;
+    margin: 0;
+}
+
+h1 { font-size: clamp(1.75rem, 5.5vw, 2.6rem); }
+h2 { font-size: 1.15rem; letter-spacing: -.015em; }
+
+p { margin: .5rem 0; }
+
+/* Small uppercase label. Names a thing; never used to decorate. */
+.label {
+    font-family: 'DM Mono', ui-monospace, 'Courier New', monospace;
+    font-size: .68rem;
+    font-weight: 500;
+    letter-spacing: .17em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.muted { color: var(--muted); font-size: .94rem; }
+
+.mono { font-family: 'DM Mono', ui-monospace, 'Courier New', monospace; }
+
+a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: .18em; }
+a:hover { text-decoration-thickness: 2px; }
+
+/* ---------------------------------------------------------------- layout */
+
+.bar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.25rem .85rem;
+    border-bottom: 1px solid var(--rule);
+}
+
+/* Deliberately plain. The ticket idea is already carried by the stub strip and the
+   perforated stubs; a third reference beside the name only read as a stray glyph. */
+.wordmark { font-size: 1.2rem; text-decoration: none; letter-spacing: -.04em; }
+
+.bar nav { display: flex; gap: 1.1rem; align-items: baseline; flex-wrap: wrap; }
+.bar nav a {
+    font-size: .88rem;
+    font-weight: 500;
+    text-decoration: none;
+    padding-bottom: 2px;
+    border-bottom: 1.5px solid transparent;
+}
+.bar nav a:hover { border-bottom-color: var(--ink); }
+.bar .who { font-size: .82rem; color: var(--muted); }
+
+main { max-width: 62rem; margin: 0 auto; padding: 1.75rem 1.25rem 4rem; }
+
+.centred {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 1.5rem 1.25rem;
+}
+.centred main { width: 100%; max-width: 24rem; padding: 0; }
+
+.sheet {
+    background: var(--sheet);
+    border: 1px solid var(--rule);
+    border-radius: var(--tear);
+    padding: 1.35rem;
+    margin-bottom: 1.25rem;
+}
+
+.sheet-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap; margin-bottom: .9rem;
+}
+
+.grid { display: grid; gap: 1.25rem; }
+@media (min-width: 620px) { .grid.two   { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 800px) { .grid.three { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 800px) { .grid.four  { grid-template-columns: repeat(4, 1fr); } }
+
+/* ===================================================================
+   THE BOARD
+   The one loud object. Everything else on the page stays quiet.
+   =================================================================== */
+
+.board {
+    background: var(--board);
+    border-radius: var(--tear);
+    padding: 1.5rem 1.35rem 1.35rem;
+    margin-bottom: 1.25rem;
+    color: var(--amber);
+    /* A board is a discrete object mounted on a wall, not a full-bleed banner. Left it
+       stretched and the content hugged one third of a very empty panel. */
+    max-width: 38rem;
+    /* A faint scanline, as on an LED matrix. Barely there. */
+    background-image:
+        repeating-linear-gradient(180deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px);
+}
+
+.board-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: .75rem; flex-wrap: wrap;
+    padding-bottom: .9rem;
+    border-bottom: 1px solid rgba(255,182,39,.22);
+}
+.board-head .label { color: var(--amber-low); }
+.board-where {
+    font-family: Archivo, sans-serif; font-weight: 700;
+    font-size: 1rem; letter-spacing: .01em; color: var(--amber);
+}
+
+/* Left-aligned, like every real departure and now-serving board. Centring the digits
+   in halves while the stub strip ran along the left made the panel read as two
+   unrelated pieces. */
+.board-readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem 2.75rem;
+    padding: 1.15rem 0 1rem;
+}
+.board-cell { text-align: left; }
+.board-cell .label { color: var(--amber-low); display: block; margin-bottom: .45rem; }
+
+/* --- split-flap digit ------------------------------------------------ */
+
+.flip {
+    display: inline-block;
+    position: relative;
+    min-width: 2.6ch;
+    padding: .3rem .5rem .35rem;
+    background: var(--well);
+    border-radius: var(--tear);
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: clamp(2.6rem, 12vw, 4rem);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--amber);
+    font-variant-numeric: tabular-nums;
+}
+/* The hinge line that makes it read as a flap rather than a number. */
+.flip::after {
+    content: '';
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: rgba(0,0,0,.55);
+}
+.flip-face { display: block; transform-origin: center; backface-visibility: hidden; }
+
+.flip.is-turning .flip-face { animation: flap 260ms ease-in; }
+@keyframes flap {
+    0%   { transform: rotateX(0deg);   opacity: 1; }
+    49%  { transform: rotateX(-88deg); opacity: .25; }
+    51%  { transform: rotateX(88deg);  opacity: .25; }
+    100% { transform: rotateX(0deg);   opacity: 1; }
+}
+
+.flip.dim { color: var(--amber-low); }
+.flip.dim .flip-face { font-size: .55em; }
+
+/* --- the stub strip: the signature ------------------------------------
+   One stub per waiting patient. Struck through once seen, amber for yours.
+   You read your place without reading a number.                        */
+
+.stubs-wrap { padding-top: .35rem; }
+
+.stubs {
+    display: flex;
+    gap: 3px;
+    /* The strip is what patients read first, so it gets real height. */
+    height: 3rem;
+    align-items: stretch;
+    /* Left-aligned and capped, so it reads as tickets torn off a roll rather than as a
+       progress bar stretched across the panel. */
+    justify-content: flex-start;
+    margin: .55rem 0 .75rem;
+}
+
+.stub {
+    /* Stub-shaped and countable: never wider than a ticket, free to shrink when the
+       queue is long. */
+    flex: 0 1 22px;
+    min-width: 3px;
+    border-radius: 1px;
+    /* Perforation down each stub, as on a ticket roll. */
+    background-image:
+        repeating-linear-gradient(180deg, rgba(0,0,0,.34) 0 2px, transparent 2px 5px);
+    background-color: var(--amber-low);
+    opacity: .5;
+}
+.stub.ahead { background-color: var(--amber-low); opacity: .85; }
+.stub.mine  {
+    background-color: var(--amber);
+    opacity: 1;
+    box-shadow: 0 0 0 2px var(--board), 0 0 14px rgba(255,182,39,.55);
+    position: relative;
+    z-index: 1;
+}
+.stub.behind { background-color: var(--amber-low); opacity: .3; }
+
+.board-line {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap;
+    padding-top: .9rem;
+    border-top: 1px solid rgba(255,182,39,.22);
+}
+.board-say {
+    font-family: Archivo, sans-serif; font-weight: 700;
+    font-size: 1.02rem; letter-spacing: -.01em; color: var(--amber);
+}
+.board-stamp-time { font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--amber-low); }
+
+/* Finished appointments get a stamp instead of a position. */
+.board-verdict {
+    text-align: center;
+    padding: 1.5rem 0 1.1rem;
+}
+.board-verdict .verdict {
+    display: inline-block;
+    font-family: Archivo, sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.6rem, 8vw, 2.6rem);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .4rem 1.1rem;
+    border: 3px solid currentColor;
+    border-radius: var(--tear);
+    transform: rotate(-3.5deg);
+    color: var(--amber);
+}
+.board-verdict .verdict.bad { color: #E86A5E; }
+
+/* =================================================================== */
+
+/* ---------------------------------------------------------------- forms */
+
+label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: .68rem; font-weight: 500;
+    letter-spacing: .17em; text-transform: uppercase;
+    color: var(--muted);
+    margin: 1rem 0 .3rem;
+}
+
+input, select {
+    width: 100%;
+    font: 400 1rem/1.4 'Public Sans', system-ui, sans-serif;
+    padding: .62rem .7rem;
+    color: var(--ink);
+    background: #FBF6E9;
+    border: 1px solid var(--rule);
+    border-radius: var(--tear);
+}
+input:focus-visible, select:focus-visible,
+button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+input::placeholder { color: #9A9482; }
+
+.hint { font-size: .8rem; color: var(--muted); margin: .35rem 0 0; }
+
+/* Buttons speak as actions: the word on the button is the word in the toast. */
+button, .btn {
+    display: inline-block;
+    width: 100%;
+    font: 600 .95rem/1.3 'Public Sans', system-ui, sans-serif;
+    text-align: center;
+    text-decoration: none;
+    padding: .68rem 1rem;
+    margin-top: 1.15rem;
+    color: var(--sheet);
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: var(--tear);
+    cursor: pointer;
+}
+button:hover, .btn:hover { background: #2C332B; }
+button:disabled { background: var(--muted); border-color: var(--muted); cursor: not-allowed; }
+
+.btn-quiet, button.quiet {
+    color: var(--ink);
+    background: transparent;
+}
+.btn-quiet:hover, button.quiet:hover { background: rgba(22,26,22,.07); }
+
+button.tight, .btn.tight { width: auto; margin: 0; padding: .38rem .8rem; font-size: .84rem; }
+
+/* A pair of choices sits side by side at its natural width; only a form's single
+   submit button spans the column. */
+.actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+.actions .btn { width: auto; margin: 0; padding: .7rem 1.4rem; }
+
+button.warn { color: var(--stamp); background: transparent; border-color: var(--stamp); }
+button.warn:hover { background: rgba(162,50,42,.09); }
+
+.row { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; }
+.row > * { flex: 1 1 9rem; }
+.row label { margin-top: 0; }
+.row .shrink { flex: 0 0 auto; }
+
+/* -------------------------------------------------------------- notices */
+
+.notice {
+    font-size: .92rem;
+    padding: .65rem .8rem;
+    margin: .9rem 0;
+    border-left: 3px solid var(--ink);
+    background: rgba(22,26,22,.05);
+    border-radius: 0 var(--tear) var(--tear) 0;
+}
+.notice.error   { border-left-color: var(--stamp); background: rgba(162,50,42,.09); color: #7C241E; }
+.notice.success { border-left-color: var(--sage);  background: rgba(74,107,84,.11); color: #2F4A37; }
+.notice:empty   { display: none; margin: 0; padding: 0; border: 0; }
+
+/* --------------------------------------------------------------- ledger */
+
+.ledger-wrap { overflow-x: auto; margin: 0 -1.35rem; padding: 0 1.35rem; }
+
+table { width: 100%; border-collapse: collapse; min-width: 34rem; }
+
+th {
+    font-family: 'DM Mono', monospace;
+    font-size: .66rem; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0 .6rem .5rem 0;
+    border-bottom: 1px solid var(--ink);
+}
+td {
+    padding: .72rem .6rem .72rem 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: .94rem;
+    vertical-align: middle;
+}
+tbody tr:hover td { background: rgba(22,26,22,.035); }
+
+/* Ticket numbers are a real sequence, so they carry the monospace treatment. */
+.ticket-no {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 1.02rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.empty { padding: 2rem .5rem; text-align: center; color: var(--muted); font-size: .94rem; }
+
+/* --------------------------------------------------------------- stamps */
+
+.stamp {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: .64rem; font-weight: 500;
+    letter-spacing: .13em; text-transform: uppercase;
+    padding: .16rem .42rem;
+    border: 1px solid currentColor;
+    border-radius: var(--tear);
+    white-space: nowrap;
+}
+.stamp.BOOKED, .stamp.WAITING     { color: var(--muted); }
+.stamp.IN_PROGRESS                { color: #8A5A12; background: rgba(255,182,39,.2); }
+.stamp.ATTENDED, .stamp.OPEN      { color: var(--sage); }
+.stamp.SKIPPED, .stamp.CANCELLED,
+.stamp.CLOSED                     { color: var(--stamp); }
+
+/* --------------------------------------------------------------- counts */
+
+.count { padding: .2rem 0 .1rem; }
+.count .n {
+    font-family: 'DM Mono', monospace;
+    font-size: 2rem; font-weight: 500; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.count .label { display: block; margin-top: .1rem; }
+
+/* ------------------------------------------------------- ticket receipt */
+
+.receipt {
+    position: relative;
+    background: var(--sheet);
+    border: 1px solid var(--rule);
+    border-radius: var(--tear);
+    padding: 1.6rem 1.35rem;
+    text-align: center;
+    margin-bottom: 1.25rem;
+}
+/* The notches a ticket gets when it is torn from the roll. */
+.receipt::before, .receipt::after {
+    content: '';
+    position: absolute; top: 50%;
+    width: 18px; height: 18px;
+    background: var(--manila);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+.receipt::before { left: -10px;  clip-path: inset(0 0 0 50%); }
+.receipt::after  { right: -10px; clip-path: inset(0 50% 0 0); }
+
+.receipt-no {
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(2.6rem, 13vw, 3.8rem);
+    font-weight: 500; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin: .45rem 0 .3rem;
+}
+.perf {
+    border: 0; border-top: 2px dashed var(--rule);
+    margin: 1.1rem 0;
+}
+
+/* ----------------------------------------------------------- bar charts */
+
+.bars { margin-top: .4rem; }
+.bar-row {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 9rem) 1fr 2.6rem;
+    gap: .7rem; align-items: center;
+    padding: .3rem 0;
+}
+.bar-row .k { font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-row .track { height: 1.15rem; background: rgba(22,26,22,.07); border-radius: 1px; }
+.bar-row .fill  { height: 100%; background: var(--ink); border-radius: 1px; min-width: 2px; }
+.bar-row .v {
+    font-family: 'DM Mono', monospace; font-size: .88rem; font-weight: 500;
+    text-align: right; font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ home page */
+
+.lede { font-size: 1.06rem; max-width: 34rem; color: var(--muted); }
+
+.demo-note {
+    font-family: 'DM Mono', monospace;
+    font-size: .78rem;
+    color: var(--muted);
+}
+
+/* --------------------------------------------------------- preferences */
+
+@media (prefers-reduced-motion: reduce) {
+    .flip.is-turning .flip-face { animation: none; }
+    * { transition: none !important; }
+}
+
+@media (min-width: 620px) {
+    main { padding: 2.25rem 1.5rem 4rem; }
+    .board { padding: 1.75rem 1.6rem 1.5rem; }
+}

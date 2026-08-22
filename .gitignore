@@ -1,0 +1,18 @@
+# Build output
+out/
+build/
+dist/
+sources.txt
+*.class
+
+# Real credentials. .env.example is the committed template; .env never is.
+.env
+config.local.properties
+
+# The JDBC driver is a downloaded binary, not source. build.sh/build.bat print the link.
+lib/*.jar
+
+*.log
+.DS_Store
+.idea/
+.vscode/

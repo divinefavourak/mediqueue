@@ -1,0 +1,52 @@
+# MediQueue -- application plus its database, in one command.
+#
+#   cp .env.example .env     then edit .env
+#   docker compose up -d
+#
+# Suitable for a VPS or an on-site clinic machine. Put a reverse proxy in front of it for
+# TLS; see DEPLOY.md.
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mediqueue
+      POSTGRES_USER: ${DB_USER:?set DB_USER in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      # Named volume, so patient records survive `docker compose down` and any rebuild.
+      - mediqueue-data:/var/lib/postgresql/data
+    # Deliberately no `ports:`. The database is reachable only from the app over the
+    # internal network -- publishing 5432 would expose it to the whole internet.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d mediqueue"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        # Waits for the database to accept connections, not merely to start. Without
+        # this the app races the database on every boot and exits before it is ready.
+        condition: service_healthy
+    environment:
+      MEDIQUEUE_DB_URL: jdbc:postgresql://db:5432/mediqueue
+      MEDIQUEUE_DB_USER: ${DB_USER}
+      MEDIQUEUE_DB_PASSWORD: ${DB_PASSWORD}
+      # The first administrator, created only while the database is empty.
+      MEDIQUEUE_ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      MEDIQUEUE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      MEDIQUEUE_DEMO_SEED: "false"
+      # Assumes a TLS-terminating proxy in front. If you are testing over plain HTTP,
+      # set this to false or the browser will discard the session cookie.
+      MEDIQUEUE_SECURITY_COOKIE_SECURE: "true"
+    ports:
+      # Bound to localhost only: the reverse proxy reaches it, the internet does not.
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  mediqueue-data:

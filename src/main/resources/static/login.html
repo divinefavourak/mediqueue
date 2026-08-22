@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in — MediQueue</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="centred">
+<main>
+    <a class="wordmark" href="/" style="display:inline-block;margin-bottom:1.25rem">MediQueue</a>
+
+    <section class="sheet">
+        <h1 style="font-size:1.5rem">Sign in</h1>
+        <p class="muted">Your queue number is waiting for you.</p>
+
+        <div id="notice" class="notice"></div>
+
+        <form id="loginForm">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" required autocomplete="email"
+                   placeholder="you@example.com">
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required
+                   autocomplete="current-password">
+
+            <button type="submit">Sign in</button>
+        </form>
+
+        <hr class="perf">
+        <p class="muted" style="margin:0">
+            New patient? <a href="/register.html">Create an account</a>
+        </p>
+        <p class="demo-note" style="margin:.5rem 0 0">
+            Demo: patient@mediqueue.ng · mediqueue123
+        </p>
+    </section>
+</main>
+
+<script src="/js/api.js"></script>
+<script>
+    onSubmit('loginForm', 'notice', async values => {
+        const user = await api('/api/auth/login', { method: 'POST', body: values });
+        // The server decides where each role lands, so the browser never duplicates it.
+        window.location.href = user.landingPage;
+    });
+</script>
+</body>
+</html>

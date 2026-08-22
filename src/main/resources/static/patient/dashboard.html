@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Your queue — MediQueue</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<main>
+    <div id="notice" class="notice"></div>
+
+    <!-- The board. Hidden until there is a live appointment to show. -->
+    <section id="livePosition" class="board" hidden aria-live="polite">
+        <div class="board-head">
+            <span class="board-where" id="boardWhere">—</span>
+            <span class="label" id="boardWhen">—</span>
+        </div>
+
+        <div class="board-readout" id="boardReadout">
+            <div class="board-cell">
+                <span class="label">Now serving</span>
+                <span class="flip dim" id="nowServing"><span class="flip-face">—</span></span>
+            </div>
+            <div class="board-cell">
+                <span class="label">Your ticket</span>
+                <span class="flip" id="ticketNumber"><span class="flip-face">—</span></span>
+            </div>
+        </div>
+
+        <!-- The stub strip: one stub per waiting patient, yours lit. -->
+        <div class="stubs-wrap">
+            <span class="label" id="aheadLabel">Ahead of you</span>
+            <div class="stubs" id="stubs" role="img" aria-label="Queue position"></div>
+        </div>
+
+        <div class="board-line">
+            <span class="board-say" id="positionSummary">Checking the queue…</span>
+            <span class="board-stamp-time" id="lastChecked"></span>
+        </div>
+
+        <!-- Kept for assistive tech and tests; the flip digits carry it visually. -->
+        <span id="positionNumber" hidden>—</span>
+    </section>
+
+    <!-- Shown instead of the board once the visit is over. -->
+    <section id="verdictBoard" class="board" hidden>
+        <div class="board-head">
+            <span class="board-where" id="verdictWhere">—</span>
+            <span class="label" id="verdictWhen">—</span>
+        </div>
+        <div class="board-verdict">
+            <span class="verdict" id="verdictStamp">—</span>
+        </div>
+        <div class="board-line">
+            <span class="board-say" id="verdictSay"></span>
+        </div>
+    </section>
+
+    <section class="sheet">
+        <div class="sheet-head">
+            <h2>Your appointments</h2>
+            <a class="btn tight" href="/patient/book.html">Book an appointment</a>
+        </div>
+        <div class="ledger-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>Ticket</th><th>Department</th><th>Date</th><th>Status</th><th></th>
+                </tr>
+                </thead>
+                <tbody id="appointmentRows">
+                <tr><td colspan="5" class="empty">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/patient.js"></script>
+</body>
+</html>

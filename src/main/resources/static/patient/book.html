@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Book an appointment — MediQueue</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<main>
+    <h1>Book an appointment</h1>
+    <p class="lede">Pick a department and a weekday. Your ticket is issued straight away.</p>
+
+    <div id="notice" class="notice"></div>
+
+    <section class="sheet" id="bookSheet">
+        <form id="bookForm">
+            <label for="departmentId">Department</label>
+            <select id="departmentId" name="departmentId" required>
+                <option value="">Loading departments…</option>
+            </select>
+
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" required>
+            <p class="hint">Weekdays only, up to 60 days ahead.</p>
+
+            <button type="submit">Book and get my ticket</button>
+        </form>
+    </section>
+
+    <!-- The confirmation is the ticket itself, notched as if torn from the roll. -->
+    <section id="confirmation" class="receipt" hidden>
+        <span class="label">Your ticket</span>
+        <div class="receipt-no" id="confirmedTicket">—</div>
+        <p class="muted" id="confirmedDetail" style="margin:0"></p>
+        <hr class="perf">
+        <p class="muted" style="margin:0 0 .25rem">
+            Keep this number. You will be called by it.
+        </p>
+        <a class="btn" href="/patient/dashboard.html">Watch my place in the queue</a>
+    </section>
+</main>
+
+<script src="/js/api.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const user = await requireUser(['PATIENT']);
+        if (!user) return;
+
+        renderTopbar(user, [
+            { href: '/patient/dashboard.html', label: 'Your queue' },
+            { href: '/patient/book.html', label: 'Book' }
+        ]);
+
+        // The browser refuses past dates too. The server enforces this regardless; this
+        // only saves a pointless round trip.
+        const date = document.getElementById('date');
+        date.min = today();
+        date.value = today();
+
+        try {
+            const departments = await api('/api/departments');
+            const select = document.getElementById('departmentId');
+
+            if (departments.length === 0) {
+                select.innerHTML = '<option value="">No departments are open</option>';
+                showNotice('notice', 'No departments are accepting appointments right now.');
+                return;
+            }
+            select.innerHTML = departments
+                .map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)} · ${escapeHtml(d.opensAt)}–${escapeHtml(d.closesAt)}</option>`)
+                .join('');
+        } catch (error) {
+            showNotice('notice', error.message);
+        }
+    });
+
+    onSubmit('bookForm', 'notice', async values => {
+        const appointment = await api('/api/appointments', { method: 'POST', body: values });
+
+        document.getElementById('confirmedTicket').textContent = pad(appointment.queueNumber);
+        document.getElementById('confirmedDetail').textContent =
+            `${appointment.departmentName} · ${formatFullDate(appointment.date)}`;
+        document.getElementById('confirmation').hidden = false;
+        document.getElementById('bookSheet').hidden = true;
+        clearNotice('notice');
+    });
+</script>
+</body>
+</html>

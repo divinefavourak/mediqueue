@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MediQueue — hold your place from anywhere</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="bar">
+    <a class="wordmark" href="/">MediQueue</a>
+    <nav>
+        <a href="/login.html">Sign in</a>
+        <a href="/register.html">Register</a>
+    </nav>
+</header>
+
+<main>
+    <h1>Hold your place<br>from anywhere.</h1>
+    <p class="lede">
+        Book at a public health centre and you get a queue number straight away. Watch how
+        many patients are ahead of you from your phone, and wait somewhere better than a
+        crowded hall.
+    </p>
+
+    <!-- The hero is the product itself: a board running a real queue. -->
+    <section class="board" aria-label="Example queue board">
+        <div class="board-head">
+            <span class="board-where">General Outpatient</span>
+            <span class="label">Live example</span>
+        </div>
+
+        <div class="board-readout">
+            <div class="board-cell">
+                <span class="label">Now serving</span>
+                <span class="flip" id="demoServing"><span class="flip-face">04</span></span>
+            </div>
+            <div class="board-cell">
+                <span class="label">Your ticket</span>
+                <span class="flip"><span class="flip-face">07</span></span>
+            </div>
+        </div>
+
+        <div class="stubs-wrap">
+            <span class="label" id="demoLabel">3 patients ahead of you</span>
+            <div class="stubs" id="demoStubs" role="img" aria-label="Three patients ahead of you"></div>
+        </div>
+
+        <div class="board-line">
+            <span class="board-say" id="demoSay">Two more to go. Stay close by.</span>
+            <span class="board-stamp-time">Updates every 5 seconds</span>
+        </div>
+    </section>
+
+    <div class="actions">
+        <a class="btn" href="/register.html">Book an appointment</a>
+        <a class="btn btn-quiet" href="/login.html">I already have an account</a>
+    </div>
+
+    <div class="grid three" style="margin-top:2.5rem">
+        <section class="sheet">
+            <h2>You get a number, not a seat</h2>
+            <p class="muted">
+                Choose a department and a day. Your ticket is issued the moment you book,
+                so there is no need to arrive early for a paper slip.
+            </p>
+        </section>
+        <section class="sheet">
+            <h2>The queue comes to you</h2>
+            <p class="muted">
+                Your place updates on its own as staff attend to each patient. No refreshing,
+                no asking at the desk.
+            </p>
+        </section>
+        <section class="sheet">
+            <h2>Staff run one screen</h2>
+            <p class="muted">
+                Nurses see the whole day in ticket order, call patients forward, and record
+                who was seen and who was absent.
+            </p>
+        </section>
+    </div>
+
+    <section class="sheet">
+        <div class="sheet-head">
+            <h2>Try it with a demo account</h2>
+            <span class="demo-note">Password: mediqueue123</span>
+        </div>
+        <div class="ledger-wrap">
+            <table>
+                <thead>
+                <tr><th>Sign in as</th><th>Email</th><th>What you can do</th></tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Patient</td>
+                    <td class="mono">patient@mediqueue.ng</td>
+                    <td>Book, watch your place, cancel</td>
+                </tr>
+                <tr>
+                    <td>Nurse</td>
+                    <td class="mono">nurse@mediqueue.ng</td>
+                    <td>Run the queue, mark patients seen or absent</td>
+                </tr>
+                <tr>
+                    <td>Administrator</td>
+                    <td class="mono">admin@mediqueue.ng</td>
+                    <td>Manage departments, staff and reports</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <p class="demo-note" style="text-align:center">
+        COS&nbsp;202 · University of Lagos · Supports SDG 3, 9 and 10
+    </p>
+</main>
+
+<script src="/js/api.js"></script>
+<script>
+    // The hero board demonstrates the one thing the product does: a patient moving up.
+    // It runs the sequence once, then stops -- a loop would turn it into wallpaper.
+    (function () {
+        const stubs = document.getElementById('demoStubs');
+        const paint = (ahead, behind) => {
+            stubs.innerHTML =
+                '<span class="stub ahead"></span>'.repeat(ahead) +
+                '<span class="stub mine"></span>' +
+                '<span class="stub behind"></span>'.repeat(behind);
+        };
+        paint(3, 2);
+
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduced) return;
+
+        const steps = [
+            { serving: '05', ahead: 2, label: '2 patients ahead of you', say: 'Moving up. Stay close by.' },
+            { serving: '06', ahead: 1, label: '1 patient ahead of you',  say: 'Almost your turn.' },
+            { serving: '07', ahead: 0, label: 'You are at the front',    say: 'You are next. Head to the consulting room.' }
+        ];
+
+        steps.forEach((step, i) => {
+            setTimeout(() => {
+                setFlip(document.getElementById('demoServing'), step.serving);
+                paint(step.ahead, 2);
+                document.getElementById('demoLabel').textContent = step.label;
+                document.getElementById('demoSay').textContent = step.say;
+            }, 1800 + i * 1700);
+        });
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Departments — MediQueue</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<main>
+    <h1>Departments</h1>
+    <p class="lede">Each department runs its own queue, with its own ticket numbers.</p>
+
+    <div id="notice" class="notice"></div>
+
+    <section class="sheet">
+        <h2>Add a department</h2>
+        <form id="departmentForm">
+            <div class="row">
+                <div>
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required placeholder="Physiotherapy">
+                </div>
+                <div>
+                    <label for="opensAt">Opens</label>
+                    <input type="time" id="opensAt" name="opensAt" value="08:00" required>
+                </div>
+                <div>
+                    <label for="closesAt">Closes</label>
+                    <input type="time" id="closesAt" name="closesAt" value="16:00" required>
+                </div>
+                <div>
+                    <label for="dailyCapacity">Patients a day</label>
+                    <input type="number" id="dailyCapacity" name="dailyCapacity"
+                           value="40" min="1" max="500" required>
+                </div>
+            </div>
+            <button type="submit">Add department</button>
+        </form>
+    </section>
+
+    <section class="sheet">
+        <h2>All departments</h2>
+        <div class="ledger-wrap">
+            <table>
+                <thead>
+                <tr><th>Name</th><th>Hours</th><th>Capacity</th><th>Booking</th><th></th></tr>
+                </thead>
+                <tbody id="departmentRows">
+                <tr><td colspan="5" class="empty">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/api.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const user = await requireUser(['ADMIN']);
+        if (!user) return;
+
+        renderTopbar(user, [
+            { href: '/admin/dashboard.html', label: 'Overview' },
+            { href: '/admin/departments.html', label: 'Departments' },
+            { href: '/admin/staff.html', label: 'Staff' },
+            { href: '/admin/reports.html', label: 'Reports' }
+        ]);
+
+        await loadDepartments();
+    });
+
+    async function loadDepartments() {
+        const tbody = document.getElementById('departmentRows');
+        try {
+            const departments = await api('/api/departments');
+
+            if (departments.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="empty">
+                    No departments yet. Add one above and patients can start booking.
+                </td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = departments.map(d => `
+                <tr>
+                    <td>${escapeHtml(d.name)}</td>
+                    <td class="mono" style="font-size:.86rem">${escapeHtml(d.opensAt)}–${escapeHtml(d.closesAt)}</td>
+                    <td class="mono" style="font-size:.86rem">${escapeHtml(d.dailyCapacity)} a day</td>
+                    <td><span class="stamp ${d.active ? 'OPEN' : 'CLOSED'}">${d.active ? 'Open' : 'Closed'}</span></td>
+                    <td>${d.active
+                        ? `<button class="tight quiet" data-close="${escapeHtml(d.id)}">Close bookings</button>`
+                        : '<span class="muted">—</span>'}</td>
+                </tr>`).join('');
+
+            document.querySelectorAll('[data-close]').forEach(button =>
+                button.addEventListener('click', async () => {
+                    if (!confirm('Stop accepting new appointments for this department?')) return;
+                    button.disabled = true;
+                    try {
+                        // Deactivates rather than deletes: appointment history and the
+                        // reports still reference this department.
+                        const result = await api(`/api/departments/${button.dataset.close}`,
+                            { method: 'DELETE' });
+                        showNotice('notice', result.message, 'success');
+                        await loadDepartments();
+                    } catch (error) {
+                        showNotice('notice', error.message);
+                        button.disabled = false;
+                    }
+                }));
+        } catch (error) {
+            showNotice('notice', error.message);
+            tbody.innerHTML = '<tr><td colspan="5" class="empty">Could not load departments.</td></tr>';
+        }
+    }
+
+    onSubmit('departmentForm', 'notice', async values => {
+        await api('/api/departments', { method: 'POST', body: values });
+        showNotice('notice', `${values.name} added. Patients can book it now.`, 'success');
+        document.getElementById('departmentForm').reset();
+        await loadDepartments();
+    });
+</script>
+</body>
+</html>

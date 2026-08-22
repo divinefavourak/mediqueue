@@ -1,0 +1,16 @@
+# Keep build artefacts and local state out of the image context. Copying them in would
+# slow every build and risk baking a stale jar or a local config into the image.
+out/
+build/
+dist/
+sources.txt
+*.log
+
+# Never ship local overrides or secrets.
+.env
+config.local.properties
+
+.git/
+.gitignore
+README.md
+DEPLOY.md

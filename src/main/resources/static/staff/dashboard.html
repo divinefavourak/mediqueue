@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Queue board — MediQueue</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<main>
+    <h1>Queue board</h1>
+    <p class="lede">Call patients forward and record who was seen. Refreshes every 5 seconds.</p>
+
+    <div id="notice" class="notice"></div>
+
+    <!-- The same board the patients read, so staff and hall agree on what is showing. -->
+    <section class="board" aria-live="polite">
+        <div class="board-head">
+            <span class="board-where" id="boardWhere">—</span>
+            <span class="label" id="boardWhen">—</span>
+        </div>
+        <div class="board-readout">
+            <div class="board-cell">
+                <span class="label">Now serving</span>
+                <span class="flip dim" id="nowServing"><span class="flip-face">––</span></span>
+            </div>
+            <div class="board-cell">
+                <span class="label">Still waiting</span>
+                <span class="flip" id="stillWaiting"><span class="flip-face">00</span></span>
+            </div>
+        </div>
+        <div class="board-line">
+            <span class="board-say" id="boardSay">Choose a department.</span>
+            <span class="board-stamp-time" id="boardTime"></span>
+        </div>
+    </section>
+
+    <section class="sheet">
+        <div class="row">
+            <div>
+                <label for="departmentId">Department</label>
+                <select id="departmentId"><option value="">Loading…</option></select>
+            </div>
+            <div>
+                <label for="date">Date</label>
+                <input type="date" id="date">
+            </div>
+            <div class="shrink">
+                <button id="callNext" class="tight" style="margin-top:1.5rem">Call next patient</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="sheet">
+        <div class="sheet-head">
+            <!-- Not "Today's register": staff routinely look at other days, and the
+                 board header and date picker already say which one. -->
+            <h2>Register</h2>
+            <span class="demo-note" id="registerCount"></span>
+        </div>
+        <div class="ledger-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>Ticket</th><th>Patient</th><th>Phone</th><th>Status</th><th>Record</th>
+                </tr>
+                </thead>
+                <tbody id="queueRows">
+                <tr><td colspan="5" class="empty">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/staff.js"></script>
+</body>
+</html>

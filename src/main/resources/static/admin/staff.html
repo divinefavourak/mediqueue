@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Staff accounts — MediQueue</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<main>
+    <h1>Staff accounts</h1>
+    <p class="lede">Nurses and administrators cannot register themselves. Create their sign-ins here.</p>
+
+    <div id="notice" class="notice"></div>
+
+    <section class="sheet">
+        <h2>Create an account</h2>
+        <form id="staffForm">
+            <div class="row">
+                <div>
+                    <label for="fullName">Full name</label>
+                    <input type="text" id="fullName" name="fullName" required placeholder="Amaka Obi">
+                </div>
+                <div>
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required placeholder="amaka@mediqueue.ng">
+                </div>
+            </div>
+            <div class="row">
+                <div>
+                    <label for="phone">Phone</label>
+                    <input type="tel" id="phone" name="phone" placeholder="0803 000 0000">
+                </div>
+                <div>
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="STAFF">Nurse — runs a queue</option>
+                        <option value="ADMIN">Administrator — manages the centre</option>
+                    </select>
+                </div>
+                <div id="departmentField">
+                    <label for="departmentId">Department</label>
+                    <select id="departmentId" name="departmentId"><option value="">Loading…</option></select>
+                </div>
+            </div>
+
+            <label for="password">Starting password</label>
+            <input type="password" id="password" name="password" required minlength="8"
+                   autocomplete="new-password">
+            <p class="hint">At least 8 characters. Hand it over in person and ask them to change it.</p>
+
+            <button type="submit">Create account</button>
+        </form>
+    </section>
+
+    <section class="sheet">
+        <h2>All accounts</h2>
+        <div class="ledger-wrap">
+            <table>
+                <thead>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th></th></tr>
+                </thead>
+                <tbody id="userRows">
+                <tr><td colspan="5" class="empty">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/api.js"></script>
+<script>
+    let me = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        me = await requireUser(['ADMIN']);
+        if (!me) return;
+
+        renderTopbar(me, [
+            { href: '/admin/dashboard.html', label: 'Overview' },
+            { href: '/admin/departments.html', label: 'Departments' },
+            { href: '/admin/staff.html', label: 'Staff' },
+            { href: '/admin/reports.html', label: 'Reports' }
+        ]);
+
+        // Administrators are not tied to a department, so the field does not apply.
+        const role = document.getElementById('role');
+        role.addEventListener('change', () => {
+            document.getElementById('departmentField').hidden = role.value === 'ADMIN';
+        });
+
+        await Promise.all([loadDepartments(), loadUsers()]);
+    });
+
+    async function loadDepartments() {
+        try {
+            const departments = await api('/api/departments');
+            document.getElementById('departmentId').innerHTML = departments
+                .map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`)
+                .join('');
+        } catch (error) {
+            showNotice('notice', error.message);
+        }
+    }
+
+    const ROLE_NAME = { PATIENT: 'Patient', STAFF: 'Nurse', ADMIN: 'Administrator' };
+
+    async function loadUsers() {
+        const tbody = document.getElementById('userRows');
+        try {
+            const users = await api('/api/users');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td>${escapeHtml(u.fullName)}</td>
+                    <td class="mono" style="font-size:.86rem">${escapeHtml(u.email)}</td>
+                    <td><span class="stamp ${u.role === 'PATIENT' ? 'BOOKED' : 'IN_PROGRESS'}">${escapeHtml(ROLE_NAME[u.role] || u.role)}</span></td>
+                    <td>${escapeHtml(u.departmentName) || '<span class="muted">—</span>'}</td>
+                    <td>${u.id === me.id
+                        ? '<span class="muted">You</span>'
+                        : `<button class="warn tight" data-delete="${escapeHtml(u.id)}">Delete</button>`}</td>
+                </tr>`).join('');
+
+            document.querySelectorAll('[data-delete]').forEach(button =>
+                button.addEventListener('click', async () => {
+                    if (!confirm('Delete this account? Their appointments go with it.')) return;
+                    button.disabled = true;
+                    try {
+                        await api(`/api/users/${button.dataset.delete}`, { method: 'DELETE' });
+                        showNotice('notice', 'Account deleted.', 'success');
+                        await loadUsers();
+                    } catch (error) {
+                        showNotice('notice', error.message);
+                        button.disabled = false;
+                    }
+                }));
+        } catch (error) {
+            showNotice('notice', error.message);
+            tbody.innerHTML = '<tr><td colspan="5" class="empty">Could not load accounts.</td></tr>';
+        }
+    }
+
+    onSubmit('staffForm', 'notice', async values => {
+        if (values.role === 'ADMIN') delete values.departmentId;
+        await api('/api/users', { method: 'POST', body: values });
+        showNotice('notice', `${values.fullName} can sign in now.`, 'success');
+        document.getElementById('staffForm').reset();
+        await loadUsers();
+    });
+</script>
+</body>
+</html>

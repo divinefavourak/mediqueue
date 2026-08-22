@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Administration — MediQueue</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<main>
+    <h1>Administration</h1>
+    <p class="lede">How the health centre is running today.</p>
+
+    <div id="notice" class="notice"></div>
+
+    <section class="board" aria-live="polite">
+        <div class="board-head">
+            <span class="board-where">Across all departments</span>
+            <span class="label" id="todayLabel">—</span>
+        </div>
+        <div class="board-readout">
+            <div class="board-cell">
+                <span class="label">Waiting now</span>
+                <span class="flip" id="statWaiting"><span class="flip-face">00</span></span>
+            </div>
+            <div class="board-cell">
+                <span class="label">Seen today</span>
+                <span class="flip" id="statAttended"><span class="flip-face">00</span></span>
+            </div>
+        </div>
+        <div class="board-line">
+            <span class="board-say" id="boardSay">Loading…</span>
+        </div>
+    </section>
+
+    <div class="grid three">
+        <section class="sheet">
+            <span class="label">Registered</span>
+            <div class="count"><span class="n" id="statPatients">—</span>
+                <span class="label">Patients</span></div>
+        </section>
+        <section class="sheet">
+            <span class="label">Registered</span>
+            <div class="count"><span class="n" id="statStaff">—</span>
+                <span class="label">Staff accounts</span></div>
+        </section>
+        <section class="sheet">
+            <span class="label">Running</span>
+            <div class="count"><span class="n" id="statDepartments">—</span>
+                <span class="label">Departments</span></div>
+        </section>
+    </div>
+
+    <div class="grid three">
+        <a class="sheet" href="/admin/departments.html" style="text-decoration:none;display:block">
+            <h2>Departments</h2>
+            <p class="muted">Add clinics, set opening hours and how many patients a day each can take.</p>
+        </a>
+        <a class="sheet" href="/admin/staff.html" style="text-decoration:none;display:block">
+            <h2>Staff accounts</h2>
+            <p class="muted">Create sign-ins for nurses and administrators.</p>
+        </a>
+        <a class="sheet" href="/admin/reports.html" style="text-decoration:none;display:block">
+            <h2>Reports</h2>
+            <p class="muted">Attendance, load by department, busiest hours and no-shows.</p>
+        </a>
+    </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const user = await requireUser(['ADMIN']);
+        if (!user) return;
+
+        renderTopbar(user, [
+            { href: '/admin/dashboard.html', label: 'Overview' },
+            { href: '/admin/departments.html', label: 'Departments' },
+            { href: '/admin/staff.html', label: 'Staff' },
+            { href: '/admin/reports.html', label: 'Reports' },
+            { href: '/staff/dashboard.html', label: 'Queue board' }
+        ]);
+
+        document.getElementById('todayLabel').textContent = formatFullDate(today());
+
+        try {
+            // Two independent reports, so one round trip of latency instead of two.
+            const [totals, attendance] = await Promise.all([
+                api('/api/reports/totals'),
+                api('/api/reports/daily-attendance')
+            ]);
+
+            setFlip(document.getElementById('statWaiting'), pad(totals.waitingNow));
+            setFlip(document.getElementById('statAttended'), pad(attendance.attended));
+
+            document.getElementById('statPatients').textContent = totals.patients;
+            document.getElementById('statStaff').textContent = totals.staff;
+            document.getElementById('statDepartments').textContent = totals.departments;
+
+            document.getElementById('boardSay').textContent =
+                totals.appointmentsToday === 0
+                    ? 'No appointments booked for today.'
+                    : `${totals.appointmentsToday} booked today · ${attendance.attendanceRate}% of finished appointments were attended.`;
+        } catch (error) {
+            showNotice('notice', error.message);
+            document.getElementById('boardSay').textContent = 'Could not load today’s figures.';
+        }
+    });
+</script>
+</body>
+</html>
