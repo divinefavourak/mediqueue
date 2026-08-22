@@ -9,8 +9,16 @@ sources.txt
 .env
 config.local.properties
 
-# The JDBC driver is a downloaded binary, not source. build.sh/build.bat print the link.
-lib/*.jar
+# NOTE: lib/*.jar is deliberately NOT ignored.
+#
+# MediQueue has no build tool, so there is no pom.xml to declare the PostgreSQL driver and
+# no ~/.m2 to fetch it into. lib/ IS this project's dependency store, which makes the
+# driver a checked-in input like any manifest -- not build output.
+#
+# Ignoring it broke the Docker build: git does not track empty directories, so lib/ was
+# absent from the repository entirely and `COPY lib/ lib/` failed with "/lib: not found".
+# It is one pinned 1 MB file, and committing it keeps `git clone && docker build` working
+# with no downloads at all.
 
 *.log
 .DS_Store
